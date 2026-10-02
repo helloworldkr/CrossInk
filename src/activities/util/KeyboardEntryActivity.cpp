@@ -98,6 +98,139 @@ const fui::KeyboardKey URL_SNIP_BOTTOM[] = {UKS("abc", fui::KeyKind::Mode, fui::
                                             UKS("Del", fui::KeyKind::Delete, fui::QWERTY_KEY_BACKSPACE, 2),
                                             UKS("OK", fui::KeyKind::Ok, fui::QWERTY_KEY_ENTER, 2)};
 
+// ---------------------------------------------------------------------------
+// iPhone iOS-style layout tables (4 rows, natural half-key indents, spacious keys)
+// Total units per row = 20.
+// Row 1: 10 keys × 2 = 20 units. insetUnits = 0.
+// Row 2: 9 keys × 2 = 18 units. insetUnits = 1 (1 + 18 + 1 = 20 units, centered 0.5-key indent).
+// Row 3: Shift (3) + 7 keys × 2 (14) + Del (3) = 20 units.
+// Row 4: 123 (4) + Space (12) + OK (4) = 20 units.
+// ---------------------------------------------------------------------------
+#define UK2(label, output, value) \
+  fui::KeyboardKey { label, output, fui::KeyKind::Normal, fui::StateNormal, value, 2, true, nullptr }
+
+// --- Lowercase (Default) ---
+const fui::KeyboardKey IOS_EN_ROW1[] = {
+    UK2("q", "q", 'q'), UK2("w", "w", 'w'), UK2("e", "e", 'e'), UK2("r", "r", 'r'),
+    UK2("t", "t", 't'), UK2("y", "y", 'y'), UK2("u", "u", 'u'), UK2("i", "i", 'i'),
+    UK2("o", "o", 'o'), UK2("p", "p", 'p')};
+
+const fui::KeyboardKey IOS_EN_ROW2[] = {
+    UK2("a", "a", 'a'), UK2("s", "s", 's'), UK2("d", "d", 'd'), UK2("f", "f", 'f'),
+    UK2("g", "g", 'g'), UK2("h", "h", 'h'), UK2("j", "j", 'j'), UK2("k", "k", 'k'),
+    UK2("l", "l", 'l')};
+
+const fui::KeyboardKey IOS_EN_ROW3[] = {
+    UKS("Shift", fui::KeyKind::Shift, fui::QWERTY_KEY_SHIFT, 3),
+    UK2("z", "z", 'z'), UK2("x", "x", 'x'), UK2("c", "c", 'c'), UK2("v", "v", 'v'),
+    UK2("b", "b", 'b'), UK2("n", "n", 'n'), UK2("m", "m", 'm'),
+    UKS("Del", fui::KeyKind::Delete, fui::QWERTY_KEY_BACKSPACE, 3)};
+
+const fui::KeyboardKey IOS_EN_ROW4[] = {
+    UKS("123", fui::KeyKind::Mode, fui::QWERTY_KEY_MODE, 4),
+    UKS("Space", fui::KeyKind::Space, fui::QWERTY_KEY_SPACE, 12),
+    UKS("OK", fui::KeyKind::Ok, fui::QWERTY_KEY_ENTER, 4)};
+
+const fui::KeyboardKey IOS_EN_ROW4_LANG[] = {
+    UKS("123", fui::KeyKind::Mode, fui::QWERTY_KEY_MODE, 3),
+    UKS(nullptr, fui::KeyKind::Lang, fui::QWERTY_KEY_LANG, 2),
+    UKS("Space", fui::KeyKind::Space, fui::QWERTY_KEY_SPACE, 11),
+    UKS("OK", fui::KeyKind::Ok, fui::QWERTY_KEY_ENTER, 4)};
+
+// --- Uppercase (Shifted) ---
+const fui::KeyboardKey IOS_EN_SHIFT_ROW1[] = {
+    UK2("Q", "Q", 'Q'), UK2("W", "W", 'W'), UK2("E", "E", 'E'), UK2("R", "R", 'R'),
+    UK2("T", "T", 'T'), UK2("Y", "Y", 'Y'), UK2("U", "U", 'U'), UK2("I", "I", 'I'),
+    UK2("O", "O", 'O'), UK2("P", "P", 'P')};
+
+const fui::KeyboardKey IOS_EN_SHIFT_ROW2[] = {
+    UK2("A", "A", 'A'), UK2("S", "S", 'S'), UK2("D", "D", 'D'), UK2("F", "F", 'F'),
+    UK2("G", "G", 'G'), UK2("H", "H", 'H'), UK2("J", "J", 'J'), UK2("K", "K", 'K'),
+    UK2("L", "L", 'L')};
+
+const fui::KeyboardKey IOS_EN_SHIFT_ROW3[] = {
+    UKS("Shift", fui::KeyKind::Shift, fui::QWERTY_KEY_SHIFT, 3),
+    UK2("Z", "Z", 'Z'), UK2("X", "X", 'X'), UK2("C", "C", 'C'), UK2("V", "V", 'V'),
+    UK2("B", "B", 'B'), UK2("N", "N", 'N'), UK2("M", "M", 'M'),
+    UKS("Del", fui::KeyKind::Delete, fui::QWERTY_KEY_BACKSPACE, 3)};
+
+// --- Symbols Page 1 (triggered by "123") ---
+const fui::KeyboardKey IOS_SYM_ROW1[] = {
+    UK2("1", "1", '1'), UK2("2", "2", '2'), UK2("3", "3", '3'), UK2("4", "4", '4'),
+    UK2("5", "5", '5'), UK2("6", "6", '6'), UK2("7", "7", '7'), UK2("8", "8", '8'),
+    UK2("9", "9", '9'), UK2("0", "0", '0')};
+
+const fui::KeyboardKey IOS_SYM_ROW2[] = {
+    UK2("-", "-", '-'), UK2("/", "/", '/'), UK2(":", ":", ':'), UK2(";", ";", ';'),
+    UK2("(", "(", '('), UK2(")", ")", ')'), UK2("$", "$", '$'), UK2("&", "&", '&'),
+    UK2("@", "@", '@'), UK2("\"", "\"", '"')};
+
+const fui::KeyboardKey IOS_SYM_ROW3[] = {
+    UKS("#+=", fui::KeyKind::Shift, fui::QWERTY_KEY_SHIFT, 3),
+    UK2(".", ".", '.'), UK2(",", ",", ','), UK2("?", "?", '?'), UK2("!", "!", '!'),
+    UK2("'", "'", '\''), UK2("%", "%", '%'), UK2("#", "#", '#'),
+    UKS("Del", fui::KeyKind::Delete, fui::QWERTY_KEY_BACKSPACE, 3)};
+
+const fui::KeyboardKey IOS_SYM_ROW4[] = {
+    UKS("ABC", fui::KeyKind::Mode, fui::QWERTY_KEY_MODE, 4),
+    UKS("Space", fui::KeyKind::Space, fui::QWERTY_KEY_SPACE, 12),
+    UKS("OK", fui::KeyKind::Ok, fui::QWERTY_KEY_ENTER, 4)};
+
+const fui::KeyboardKey IOS_SYM_ROW4_LANG[] = {
+    UKS("ABC", fui::KeyKind::Mode, fui::QWERTY_KEY_MODE, 3),
+    UKS(nullptr, fui::KeyKind::Lang, fui::QWERTY_KEY_LANG, 2),
+    UKS("Space", fui::KeyKind::Space, fui::QWERTY_KEY_SPACE, 11),
+    UKS("OK", fui::KeyKind::Ok, fui::QWERTY_KEY_ENTER, 4)};
+
+// --- Symbols Page 2 (triggered by "#+=") ---
+const fui::KeyboardKey IOS_SYM2_ROW1[] = {
+    UK2("[", "[", '['), UK2("]", "]", ']'), UK2("{", "{", '{'), UK2("}", "}", '}'),
+    UK2("#", "#", '#'), UK2("%", "%", '%'), UK2("^", "^", '^'), UK2("*", "*", '*'),
+    UK2("+", "+", '+'), UK2("=", "=", '=')};
+
+const fui::KeyboardKey IOS_SYM2_ROW2[] = {
+    UK2("_", "_", '_'), UK2("\\", "\\", '\\'), UK2("|", "|", '|'), UK2("~", "~", '~'),
+    UK2("<", "<", '<'), UK2(">", ">", '>'), UK2("$", "$", '$'), UK2("`", "`", '`'),
+    UK2(";", ";", ';'), UK2("\"", "\"", '"')};
+
+const fui::KeyboardKey IOS_SYM2_ROW3[] = {
+    UKS("123", fui::KeyKind::Shift, fui::QWERTY_KEY_SHIFT, 3),
+    UK2(".", ".", '.'), UK2(",", ",", ','), UK2("?", "?", '?'), UK2("!", "!", '!'),
+    UK2("'", "'", '\''), UK2(":", ":", ':'), UK2("/", "/", '/'),
+    UKS("Del", fui::KeyKind::Delete, fui::QWERTY_KEY_BACKSPACE, 3)};
+
+#undef UK2
+
+const fui::KeyboardRow IOS_EN_ROWS[] = {
+    {IOS_EN_ROW1, 10, 0}, {IOS_EN_ROW2, 9, 1}, {IOS_EN_ROW3, 9, 0}, {IOS_EN_ROW4, 3, 0}};
+const fui::KeyboardRow IOS_EN_ROWS_LANG[] = {
+    {IOS_EN_ROW1, 10, 0}, {IOS_EN_ROW2, 9, 1}, {IOS_EN_ROW3, 9, 0}, {IOS_EN_ROW4_LANG, 4, 0}};
+
+const fui::KeyboardRow IOS_EN_SHIFT_ROWS[] = {
+    {IOS_EN_SHIFT_ROW1, 10, 0}, {IOS_EN_SHIFT_ROW2, 9, 1}, {IOS_EN_SHIFT_ROW3, 9, 0}, {IOS_EN_ROW4, 3, 0}};
+const fui::KeyboardRow IOS_EN_SHIFT_ROWS_LANG[] = {
+    {IOS_EN_SHIFT_ROW1, 10, 0}, {IOS_EN_SHIFT_ROW2, 9, 1}, {IOS_EN_SHIFT_ROW3, 9, 0}, {IOS_EN_ROW4_LANG, 4, 0}};
+
+const fui::KeyboardRow IOS_SYM_ROWS[] = {
+    {IOS_SYM_ROW1, 10, 0}, {IOS_SYM_ROW2, 10, 0}, {IOS_SYM_ROW3, 9, 0}, {IOS_SYM_ROW4, 3, 0}};
+const fui::KeyboardRow IOS_SYM_ROWS_LANG[] = {
+    {IOS_SYM_ROW1, 10, 0}, {IOS_SYM_ROW2, 10, 0}, {IOS_SYM_ROW3, 9, 0}, {IOS_SYM_ROW4_LANG, 4, 0}};
+
+const fui::KeyboardRow IOS_SYM2_ROWS[] = {
+    {IOS_SYM2_ROW1, 10, 0}, {IOS_SYM2_ROW2, 10, 0}, {IOS_SYM2_ROW3, 9, 0}, {IOS_SYM_ROW4, 3, 0}};
+const fui::KeyboardRow IOS_SYM2_ROWS_LANG[] = {
+    {IOS_SYM2_ROW1, 10, 0}, {IOS_SYM2_ROW2, 10, 0}, {IOS_SYM2_ROW3, 9, 0}, {IOS_SYM_ROW4_LANG, 4, 0}};
+
+const fui::KeyboardLayout IOS_EN_LAYOUT{IOS_EN_ROWS, 4};
+const fui::KeyboardLayout IOS_EN_LANG_LAYOUT{IOS_EN_ROWS_LANG, 4};
+const fui::KeyboardLayout IOS_EN_SHIFT_LAYOUT{IOS_EN_SHIFT_ROWS, 4};
+const fui::KeyboardLayout IOS_EN_SHIFT_LANG_LAYOUT{IOS_EN_SHIFT_ROWS_LANG, 4};
+
+const fui::KeyboardLayout IOS_SYM_LAYOUT{IOS_SYM_ROWS, 4};
+const fui::KeyboardLayout IOS_SYM_LANG_LAYOUT{IOS_SYM_ROWS_LANG, 4};
+const fui::KeyboardLayout IOS_SYM2_LAYOUT{IOS_SYM2_ROWS, 4};
+const fui::KeyboardLayout IOS_SYM2_LANG_LAYOUT{IOS_SYM2_ROWS_LANG, 4};
+
 #undef UK
 #undef UKA
 #undef UKW
@@ -147,12 +280,21 @@ void KeyboardEntryActivity::onEnter() {
 void KeyboardEntryActivity::onExit() { Activity::onExit(); }
 
 const fui::KeyboardLayout& KeyboardEntryActivity::currentLayout() const {
-  if (symbols) return fui::builtinKeyboardLayout(layoutId, shifted, true);
   if (inputType == InputType::Url) {
     if (urlPanel) return URL_SNIPPET_LAYOUT;
     return shifted ? URL_SHIFT_LAYOUT : URL_LAYOUT;
   }
-  return fui::builtinKeyboardLayout(layoutId, shifted, false, /*numberRow=*/true, showLangKey);
+  if (layoutId == fui::KeyboardLayoutId::QwertyEn) {
+    if (symbols) {
+      if (showLangKey) return shifted ? IOS_SYM2_LANG_LAYOUT : IOS_SYM_LANG_LAYOUT;
+      return shifted ? IOS_SYM2_LAYOUT : IOS_SYM_LAYOUT;
+    }
+    if (showLangKey) {
+      return shifted ? IOS_EN_SHIFT_LANG_LAYOUT : IOS_EN_LANG_LAYOUT;
+    }
+    return shifted ? IOS_EN_SHIFT_LAYOUT : IOS_EN_LAYOUT;
+  }
+  return fui::builtinKeyboardLayout(layoutId, shifted, symbols, /*numberRow=*/false, showLangKey);
 }
 
 const fui::KeyboardKey* KeyboardEntryActivity::selectedKey() const {
@@ -516,7 +658,7 @@ fui::Rect KeyboardEntryActivity::keyboardRect() const {
   const int pageWidth = renderer.getScreenWidth();
   const int pageHeight = renderer.getScreenHeight();
   const int rows = currentLayout().rowCount;
-  const int gap = metrics.keyboardKeySpacing;
+  const int gap = metrics.keyboardKeySpacing > 0 ? metrics.keyboardKeySpacing : 4;
   const int height = rows * metrics.keyboardKeyHeight + (rows > 1 ? (rows - 1) * gap : 0);
   const int width = pageWidth * metrics.keyboardWidthPercent / 100;
   const int x = (pageWidth - width) / 2;
@@ -996,16 +1138,20 @@ void KeyboardEntryActivity::render(RenderLock&&) {
   props.layout = &layout;
   props.keyAction = ACTION_KEY;  // one action id; loop() dispatches on key value
   props.okLabel = tr(STR_OK_BUTTON);
-  props.shiftLabel = tr(STR_KEY_SHIFT);
-  // Match the label to the layer the mode key leads back from: the symbols
-  // layer and the URL snippet panel both label it "abc" in the static tables.
-  props.modeLabel =
-      (symbols || (inputType == InputType::Url && urlPanel)) ? tr(STR_KEY_MODE_ABC) : tr(STR_KEY_MODE_SYMBOLS);
+  if (symbols) {
+    props.shiftLabel = shifted ? "123" : "#+=";
+    props.modeLabel = tr(STR_KEY_MODE_ABC);
+  } else {
+    props.shiftLabel = shifted ? "SHIFT" : "Shift";
+    props.modeLabel = "123";
+  }
   props.inputMask = static_cast<uint16_t>(fui::InputTouch | fui::InputLongPress);
   props.selectedIndex = cursorMode ? -1 : static_cast<int16_t>(selectedLogicalIndex());
   props.labelText.font = fui::GfxRendererTarget::FONT_BODY;
   props.altText.font = fui::GfxRendererTarget::FONT_SMALL;
-  props.gap = static_cast<int16_t>(metrics.keyboardKeySpacing);
+  props.gap = metrics.keyboardKeySpacing > 0 ? static_cast<int16_t>(metrics.keyboardKeySpacing) : 4;
+  props.rowGap = props.gap;
+  props.keyRadius = 6;
   props.padding = fui::Insets{0, 0, 0, 0};
   // Fingers land low on the bottom row (occlusion) and there is no key below
   // to catch the miss — extend its hit band down to the button hints bar.

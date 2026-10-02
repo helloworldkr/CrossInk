@@ -57,6 +57,8 @@ pio run -e x4-pro-simulator -t run_simulator
 
 The `H` mapping is active only in `x4-pro-simulator`.
 
+For complete touchscreen gestures, app-specific shortcuts, and autostart parameters, see the [Simulator Controls Reference](simulator-controls.md).
+
 ## Cache Note
 
 On first open of an EPUB, an **Indexing...** popup appears while the section cache is built in `.crosspoint/`.

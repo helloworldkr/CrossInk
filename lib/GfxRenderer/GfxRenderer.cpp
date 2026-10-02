@@ -12,6 +12,7 @@
 #include <algorithm>
 
 #include "FontCacheManager.h"
+#include "PaintClock.h"
 
 namespace {
 
@@ -2388,6 +2389,7 @@ void GfxRenderer::invertRect(const int x, const int y, const int width, const in
 
 void GfxRenderer::displayBuffer(const HalDisplay::RefreshMode refreshMode, const bool turnOffScreen) const {
   display.displayBuffer(refreshMode, fadingFix || turnOffScreen);
+  paintclock::notePainted();
 }
 
 size_t GfxRenderer::readFramebufferRegion(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t* dst,
@@ -2428,12 +2430,16 @@ void GfxRenderer::displayBufferAsync(const HalDisplay::RefreshMode refreshMode) 
   // relies on; keep those users on the blocking path.
   if (fadingFix) {
     display.displayBuffer(refreshMode, fadingFix);
+    paintclock::notePainted();
     return;
   }
   display.displayBufferAsync(refreshMode);
 }
 
-void GfxRenderer::waitRefreshComplete() const { display.waitRefreshComplete(); }
+void GfxRenderer::waitRefreshComplete() const {
+  display.waitRefreshComplete();
+  paintclock::notePainted();
+}
 
 bool GfxRenderer::supportsAsyncRefresh() const { return !fadingFix && display.supportsAsyncRefresh(); }
 
@@ -3042,6 +3048,7 @@ size_t GfxRenderer::getBufferSize() const { return frameBufferSize; }
 void GfxRenderer::displayGrayscaleBase(HalDisplay::RefreshMode fallback, const bool turnOffScreen) const {
   absoluteGrayPlanes = false;
   display.displayGrayscaleBase(fallback, fadingFix || turnOffScreen);
+  paintclock::notePainted();
 }
 
 void GfxRenderer::preconditionGrayscale() const { display.preconditionGrayscale(); }
@@ -3071,6 +3078,7 @@ void GfxRenderer::copyGrayscaleMsbBuffers() const { display.copyGrayscaleMsbBuff
 void GfxRenderer::displayGrayBuffer(const bool turnOffScreen) const {
   display.displayGrayBuffer(fadingFix || turnOffScreen);
   absoluteGrayPlanes = false;
+  paintclock::notePainted();
 }
 
 void GfxRenderer::writeGrayscalePlaneStrip(bool lsbPlane, const uint8_t* scratch, int yStart, int numRows) const {

@@ -449,7 +449,10 @@ bool HalStorage::removeDir(const char* path) {
   assert(impl != nullptr);                 \
   return impl->file.method(__VA_ARGS__);
 
-void HalFile::flush() { HAL_FILE_WRAPPED_CALL(flush, ); }
+void HalFile::flush() {
+  if (!impl) return;
+  HAL_FILE_WRAPPED_CALL(flush, );
+}
 size_t HalFile::getName(char* name, size_t len) { HAL_FILE_WRAPPED_CALL(getName, name, len); }
 size_t HalFile::size() { HAL_FILE_FORWARD_CALL(size, ); }              // already thread-safe, no need to wrap
 size_t HalFile::fileSize() { HAL_FILE_FORWARD_CALL(fileSize, ); }      // already thread-safe, no need to wrap
@@ -464,7 +467,10 @@ int HalFile::read(void* buf, size_t count) { HAL_FILE_WRAPPED_CALL(read, buf, co
 int HalFile::read() { HAL_FILE_WRAPPED_CALL(read, ); }
 size_t HalFile::write(const void* buf, size_t count) { HAL_FILE_WRAPPED_CALL(write, buf, count); }
 size_t HalFile::write(uint8_t b) { HAL_FILE_WRAPPED_CALL(write, b); }
-bool HalFile::sync() { HAL_FILE_WRAPPED_CALL(sync, ); }
+bool HalFile::sync() {
+  if (!impl) return true;
+  HAL_FILE_WRAPPED_CALL(sync, );
+}
 bool HalFile::rename(const char* newPath) { HAL_FILE_WRAPPED_CALL(rename, newPath); }
 bool HalFile::isDirectory() const { HAL_FILE_FORWARD_CALL(isDirectory, ); }  // already thread-safe, no need to wrap
 void HalFile::rewindDirectory() {

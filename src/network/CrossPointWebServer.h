@@ -5,6 +5,7 @@
 #include <WebServer.h>
 #include <WebSocketsServer.h>
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -48,8 +49,26 @@ class CrossPointWebServer {
     UploadState() { buffer.resize(UPLOAD_BUFFER_SIZE); }
   } upload;
 
-  CrossPointWebServer();
+  enum class Surface {
+    Full,
+    WallpapersOnly,
+    NotesOnly,
+  };
+
+  explicit CrossPointWebServer(Surface surface = Surface::Full);
   ~CrossPointWebServer();
+
+  void setNotesFile(const std::string& path, const std::string& displayName, const bool isList) {
+    notesPath = path;
+    notesName = displayName;
+    notesIsList = isList;
+  }
+
+  bool takeNotesChanged() {
+    const bool changed = notesChanged;
+    notesChanged = false;
+    return changed;
+  }
 
   // Start the web server (call after WiFi is connected)
   void begin();
@@ -142,4 +161,18 @@ class CrossPointWebServer {
   void handleGetWifiNetworks() const;
   void handlePostWifiNetwork();
   void handleDeleteWifiNetwork();
+
+  // Notes handlers and surface state
+  bool isFull() const { return surface == Surface::Full; }
+  bool isNotes() const { return surface == Surface::NotesOnly; }
+
+  Surface surface = Surface::Full;
+  std::string notesPath;
+  std::string notesName;
+  bool notesIsList = false;
+  std::atomic<bool> notesChanged{false};
+
+  void handleNotesPage() const;
+  void handleNotesText();
+  void handleNotesSave();
 };

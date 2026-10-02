@@ -34,9 +34,11 @@
 #include "html/FontsPageHtml.generated.h"
 #include "html/HomePageHtml.generated.h"
 #include "html/LogoPng.generated.h"
+#include "html/NotesPageHtml.generated.h"
 #include "html/SettingsPageHtml.generated.h"
 #include "html/StyleCss.generated.h"
 #include "html/js/jszip_minJs.generated.h"
+#include "../apps_local/notes/NotesCore.h"
 #include "util/BookCacheUtils.h"
 #include "util/FontFamilyLabel.h"
 #include "util/StringUtils.h"
@@ -298,7 +300,7 @@ bool isProtectedPath(const String& path) {
 // - HomePageHtml (from html/HomePage.html)
 // - FilesPageHeaderHtml (from html/FilesPageHeader.html)
 // - FilesPageFooterHtml (from html/FilesPageFooter.html)
-CrossPointWebServer::CrossPointWebServer() {}
+CrossPointWebServer::CrossPointWebServer(Surface surface) : surface(surface) {}
 
 CrossPointWebServer::~CrossPointWebServer() { stop(); }
 
@@ -347,70 +349,79 @@ void CrossPointWebServer::begin() {
   // are answered in handleNotFound().
   server->enableCORS(true);
 
-  // Setup routes
-  server->on("/", HTTP_GET, [this] { handleRoot(); });
-  server->on("/files", HTTP_GET, [this] { handleFileList(); });
-  server->on("/js/jszip.min.js", HTTP_GET, [this] { handleJszip(); });
-  server->on("/style.css", HTTP_GET, [this] { handleStyleCss(); });
-  server->on("/logo.png", HTTP_GET, [this] { handleLogo(); });
+  if (isNotes()) {
+    server->on("/", HTTP_GET, [this] { handleNotesPage(); });
+    server->on("/n", HTTP_GET, [this] { handleNotesPage(); });
+    server->on("/n/text", HTTP_GET, [this] { handleNotesText(); });
+    server->on("/n/text", HTTP_PUT, [this] { handleNotesSave(); });
+    server->on("/n/text", HTTP_POST, [this] { handleNotesSave(); });
+  } else {
+    // Setup routes
+    server->on("/", HTTP_GET, [this] { handleRoot(); });
+    server->on("/files", HTTP_GET, [this] { handleFileList(); });
+    server->on("/js/jszip.min.js", HTTP_GET, [this] { handleJszip(); });
+    server->on("/style.css", HTTP_GET, [this] { handleStyleCss(); });
+    server->on("/logo.png", HTTP_GET, [this] { handleLogo(); });
 
-  server->on("/api/status", HTTP_GET, [this] { handleStatus(); });
-  server->on("/api/files", HTTP_GET, [this] { handleFileListData(); });
-  server->on("/download", HTTP_GET, [this] { handleDownload(); });
+    server->on("/api/status", HTTP_GET, [this] { handleStatus(); });
+    server->on("/api/files", HTTP_GET, [this] { handleFileListData(); });
+    server->on("/download", HTTP_GET, [this] { handleDownload(); });
 
-  // Upload endpoint with special handling for multipart form data
-  server->on("/upload", HTTP_POST, [this] { handleUploadPost(upload); }, [this] { handleUpload(upload); });
+    // Upload endpoint with special handling for multipart form data
+    server->on("/upload", HTTP_POST, [this] { handleUploadPost(upload); }, [this] { handleUpload(upload); });
 
-  // Create folder endpoint
-  server->on("/mkdir", HTTP_POST, [this] { handleCreateFolder(); });
+    // Create folder endpoint
+    server->on("/mkdir", HTTP_POST, [this] { handleCreateFolder(); });
 
-  // Rename file endpoint
-  server->on("/rename", HTTP_POST, [this] { handleRename(); });
+    // Rename file endpoint
+    server->on("/rename", HTTP_POST, [this] { handleRename(); });
 
-  // Move file endpoint
-  server->on("/move", HTTP_POST, [this] { handleMove(); });
+    // Move file endpoint
+    server->on("/move", HTTP_POST, [this] { handleMove(); });
 
-  // Delete file/folder endpoint
-  server->on("/delete", HTTP_POST, [this] { handleDelete(); });
+    // Delete file/folder endpoint
+    server->on("/delete", HTTP_POST, [this] { handleDelete(); });
 
-  // Settings endpoints
-  server->on("/settings", HTTP_GET, [this] { handleSettingsPage(); });
-  server->on("/api/settings", HTTP_GET, [this] { handleGetSettings(); });
-  server->on("/api/settings", HTTP_POST, [this] { handlePostSettings(); });
+    // Settings endpoints
+    server->on("/settings", HTTP_GET, [this] { handleSettingsPage(); });
+    server->on("/api/settings", HTTP_GET, [this] { handleGetSettings(); });
+    server->on("/api/settings", HTTP_POST, [this] { handlePostSettings(); });
 
-  // Font management endpoints
-  server->on("/fonts", HTTP_GET, [this] { handleFontsPage(); });
-  server->on("/api/fonts", HTTP_GET, [this] { handleFontList(); });
-  server->on("/api/fonts/upload", HTTP_POST, [this] { handleFontUpload(); }, [this] { handleFontUploadData(); });
-  server->on("/api/fonts/delete", HTTP_POST, [this] { handleFontDelete(); });
+    // Font management endpoints
+    server->on("/fonts", HTTP_GET, [this] { handleFontsPage(); });
+    server->on("/api/fonts", HTTP_GET, [this] { handleFontList(); });
+    server->on("/api/fonts/upload", HTTP_POST, [this] { handleFontUpload(); }, [this] { handleFontUploadData(); });
+    server->on("/api/fonts/delete", HTTP_POST, [this] { handleFontDelete(); });
 
-  // OPDS server endpoints
-  server->on("/api/opds", HTTP_GET, [this] { handleGetOpdsServers(); });
-  server->on("/api/opds", HTTP_POST, [this] { handlePostOpdsServer(); });
-  server->on("/api/opds/delete", HTTP_POST, [this] { handleDeleteOpdsServer(); });
+    // OPDS server endpoints
+    server->on("/api/opds", HTTP_GET, [this] { handleGetOpdsServers(); });
+    server->on("/api/opds", HTTP_POST, [this] { handlePostOpdsServer(); });
+    server->on("/api/opds/delete", HTTP_POST, [this] { handleDeleteOpdsServer(); });
 
-  // Wi-Fi credential endpoints
-  server->on("/api/wifi", HTTP_GET, [this] { handleGetWifiNetworks(); });
-  server->on("/api/wifi", HTTP_POST, [this] { handlePostWifiNetwork(); });
-  server->on("/api/wifi/delete", HTTP_POST, [this] { handleDeleteWifiNetwork(); });
+    // Wi-Fi credential endpoints
+    server->on("/api/wifi", HTTP_GET, [this] { handleGetWifiNetworks(); });
+    server->on("/api/wifi", HTTP_POST, [this] { handlePostWifiNetwork(); });
+    server->on("/api/wifi/delete", HTTP_POST, [this] { handleDeleteWifiNetwork(); });
+
+    // Collect WebDAV headers and register handler
+    const char* davHeaders[] = {"Depth", "Destination", "Overwrite", "If", "Lock-Token", "Timeout", "If-None-Match"};
+    server->collectHeaders(davHeaders, 7);
+    server->addHandler(new WebDAVHandler());  // Note: WebDAVHandler will be deleted by WebServer when server is stopped
+  }
 
   server->onNotFound([this] { handleNotFound(); });
-
-  // Collect WebDAV headers and register handler
-  const char* davHeaders[] = {"Depth", "Destination", "Overwrite", "If", "Lock-Token", "Timeout", "If-None-Match"};
-  server->collectHeaders(davHeaders, 7);
-  server->addHandler(new WebDAVHandler());  // Note: WebDAVHandler will be deleted by WebServer when server is stopped
-
   server->begin();
 
-  // Start WebSocket server for fast binary uploads
-  wsServer.reset(new WebSocketsServer(wsPort));
-  wsInstance = const_cast<CrossPointWebServer*>(this);
-  wsServer->begin();
-  wsServer->onEvent(wsEventCallback);
+  if (!isNotes()) {
+    // Start WebSocket server for fast binary uploads
+    wsServer.reset(new WebSocketsServer(wsPort));
+    wsInstance = const_cast<CrossPointWebServer*>(this);
+    wsServer->begin();
+    wsServer->onEvent(wsEventCallback);
 
-  udpActive = udp.begin(LOCAL_UDP_PORT);
-  LOG_DBG("WEB", "Discovery UDP %s on port %d", udpActive ? "enabled" : "failed", LOCAL_UDP_PORT);
+    udpActive = udp.begin(LOCAL_UDP_PORT);
+    LOG_DBG("WEB", "Discovery UDP %s on port %d", udpActive ? "enabled" : "failed", LOCAL_UDP_PORT);
+  }
 
   // Do not subscribe the serving task to the task watchdog. Arduino WebServer
   // permits five-second client and ACK waits, which can consume the entire
@@ -2306,4 +2317,68 @@ void CrossPointWebServer::handleFontDelete() {
     server->send(500, "application/json", "{\"error\":\"Delete failed\"}");
     LOG_ERR("WEB", "Failed to delete font family: %s", familyName);
   }
+}
+
+constexpr size_t kNotesMaxBytes = 16 * 1024;
+
+void CrossPointWebServer::handleNotesPage() const {
+  sendStaticContent(server.get(), NotesPageHtml, sizeof(NotesPageHtml), NotesPageHtmlETag, "text/html");
+}
+
+void CrossPointWebServer::handleNotesText() {
+  if (notesPath.empty()) {
+    server->send(503, "text/plain", "No note is open on the reader.");
+    return;
+  }
+  String encoded;
+  for (const char c : notesName) {
+    if (static_cast<unsigned char>(c) < 0x80 && (isalnum(c) || c == '-' || c == '_' || c == '.' || c == ' ')) {
+      encoded += c;
+    } else {
+      char hex[4];
+      std::snprintf(hex, sizeof(hex), "%%%02X", static_cast<unsigned char>(c));
+      encoded += hex;
+    }
+  }
+  server->sendHeader("X-Note-Name", encoded);
+  server->sendHeader("X-Note-Kind", notesIsList ? "list" : "note");
+  server->sendHeader("Cache-Control", "no-store");
+  server->send(200, "text/plain; charset=utf-8", Storage.readFile(notesPath.c_str()));
+}
+
+void CrossPointWebServer::handleNotesSave() {
+  if (notesPath.empty()) {
+    server->send(503, "text/plain", "No note is open on the reader.");
+    return;
+  }
+  const String raw = server->arg("plain");
+  if (raw.length() > kNotesMaxBytes) {
+    server->send(413, "text/plain", "That is too long for a note.");
+    return;
+  }
+
+  std::string body(raw.c_str(), raw.length());
+  if (notesIsList) notes::coerceToList(body);
+
+  const std::string part = notesPath + ".part";
+  {
+    HalFile file;
+    if (!Storage.openFileForWrite("NOTES", part.c_str(), file)) {
+      server->send(500, "text/plain", "The card would not take it.");
+      return;
+    }
+    if (!body.empty() && file.write(body.data(), body.size()) != static_cast<int>(body.size())) {
+      Storage.remove(part.c_str());
+      server->send(500, "text/plain", "The card would not take it.");
+      return;
+    }
+  }
+  Storage.remove(notesPath.c_str());
+  if (!Storage.rename(part.c_str(), notesPath.c_str())) {
+    Storage.remove(part.c_str());
+    server->send(500, "text/plain", "The card would not take it.");
+    return;
+  }
+  notesChanged = true;
+  server->send(200, "text/plain", "saved");
 }

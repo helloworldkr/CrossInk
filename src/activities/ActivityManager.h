@@ -151,6 +151,7 @@ class ActivityManager {
   bool openReaderMenuFromShortcut();
   bool handleShortcutAction(uint8_t action);
   bool hasActivityNamed(const char* activityName) const;
+  const char* currentActivityName() const;
 #ifdef SIMULATOR
   bool isCurrentActivityNamed(const char* activityName) const;
 #endif

@@ -40,6 +40,7 @@
 #include "util/FrontlightPanelActivity.h"
 #include "util/FullScreenMessageActivity.h"
 #include "util/TwoFingerSwipe.h"
+#include "../apps_local/Shelf.h"
 
 namespace {
 constexpr uint32_t FILE_TRANSFER_MODE_MASK = 0xFF;
@@ -738,6 +739,7 @@ void ActivityManager::goToReaderAndRunMenuAction(std::string path, const uint8_t
 }
 
 void ActivityManager::goToSleep(bool fromTimeout) {
+  shelf::rememberForWake(currentActivity ? currentActivity->name.c_str() : "");
   const bool canSnapshotOverlay = currentActivity && currentActivity->canSnapshotForSleepOverlay();
   const GfxRenderer::Orientation sleepPopupOrientation = renderer.getOrientation();
   replaceActivity(std::make_unique<SleepActivity>(renderer, mappedInput, canSnapshotOverlay, getCurrentBookPath(),
@@ -840,6 +842,11 @@ bool ActivityManager::hasActivityNamed(const char* activityName) const {
   }
 
   return std::any_of(stackActivities.begin(), stackActivities.end(), matches);
+}
+
+const char* ActivityManager::currentActivityName() const {
+  if (pendingActivity) return pendingActivity->name.c_str();
+  return currentActivity ? currentActivity->name.c_str() : "";
 }
 
 #ifdef SIMULATOR

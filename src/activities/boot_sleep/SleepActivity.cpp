@@ -40,6 +40,7 @@
 #include "fontIds.h"
 #include "images/Logo120.h"
 #include "images/MoonIcon.h"
+#include "../../apps_local/notes/NotesSleep.h"
 
 namespace {
 
@@ -568,6 +569,12 @@ void SleepActivity::onEnter() {
       return renderMinimalStatsSleepScreen();
     case (CrossPointSettings::SLEEP_SCREEN_MODE::DASHBOARD_SLEEP):
       return renderDashboardSleepScreen();
+    case (CrossPointSettings::SLEEP_SCREEN_MODE::NOTE):
+      if (notes::drawAsleep(renderer)) {
+        renderer.displayBuffer(HalDisplay::HALF_REFRESH);
+        return;
+      }
+      return renderDefaultSleepScreen();
     default:
       return renderDefaultSleepScreen();
   }

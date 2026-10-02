@@ -2,6 +2,11 @@
 
 ### Added
 
+- **Notes**: Create, view, and edit markdown notes and task checklists with the on-screen touch keyboard or via live phone typing over local Wi-Fi (`/n`); supports pinning any note as the sleep screen.
+- **Notes Item Editing**: Tap any line in a note or checklist to open an action sheet to edit text, delete the line directly, or toggle completion.
+- **Study (Anki Decks)**: Review flashcard decks with the FSRS spaced repetition scheduler, card flipping, quality ratings (Again/Hard/Good/Easy), Cloze deletions, embedded illustrations, review statistics, and Python CLI tools (`tools_local/study/`) to convert Anki `.apkg` collections.
+- **Apps Shelf**: Added an "Apps" launcher entry on the Home screen to browse and run on-device applications.
+
 - EPUBs with stable page numbers can jump directly to a specific stable page from the reader menu.
 - Hidden folders can be created using the web file manager now when prefixed with a dot.
 - Choose whole numbers, one decimal, or two decimals for the book progress percentage in status bar settings.
@@ -12,6 +17,7 @@
 
 ### Changed
 
+- **iOS-Style Keyboard**: Sized and arranged on-screen keyboard into an iPhone-style 4-row layout with dedicated `123` / `#+=` layers, 4px key spacing, and rounded keycaps to prevent accidental touches.
 - PNG, XTC, and image-dithering scratch buffers use fewer heap allocations to reduce fragmentation.
 - The shared settings catalog keeps its initial allocation instead of retaining unused vector capacity.
 - SPI SD-card transfers are batched through the ESP32 hardware FIFO for faster reads.

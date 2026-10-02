@@ -751,11 +751,26 @@ void BaseTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount
                                const std::function<const char*(int index)>& buttonLabel,
                                const std::function<UIIcon(int index)>& rowIcon) const {
   (void)rowIcon;
-  constexpr int maxVisibleItems = 7;
   const auto& metrics = UITheme::getInstance().getMetrics();
-  const int rowStep = metrics.menuRowHeight + metrics.menuSpacing;
+  int rowHeight = metrics.menuRowHeight;
+  int spacing = metrics.menuSpacing;
   const int availableHeight = std::max(0, rect.height - metrics.verticalSpacing);
-  const int pageItems = std::clamp((availableHeight + metrics.menuSpacing) / rowStep, 1, maxVisibleItems);
+
+  if (buttonCount > 0) {
+    const int requiredHeight = buttonCount * rowHeight + (buttonCount - 1) * spacing;
+    if (requiredHeight > availableHeight && availableHeight > 0) {
+      const int availableForRows = availableHeight - (buttonCount - 1) * 3;
+      const int candidateHeight = availableForRows / buttonCount;
+      if (candidateHeight >= 38) {
+        rowHeight = std::min(rowHeight, candidateHeight);
+        spacing = std::max(2, (availableHeight - buttonCount * rowHeight) / std::max(1, buttonCount - 1));
+        spacing = std::min(spacing, static_cast<int>(metrics.menuSpacing));
+      }
+    }
+  }
+
+  const int rowStep = rowHeight + spacing;
+  const int pageItems = std::max(1, (availableHeight + spacing) / rowStep);
   const int totalPages = (buttonCount + pageItems - 1) / pageItems;
 
   const int pageStartIndex = (selectedIndex / pageItems) * pageItems;
@@ -766,7 +781,7 @@ void BaseTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount
     constexpr int margin = 15;  // Offset from right edge
 
     const int centerX = rect.x + rect.width - indicatorWidth / 2 - margin;
-    const int menuHeight = pageItems * rowStep - metrics.menuSpacing;
+    const int menuHeight = pageItems * rowStep - spacing;
     const int indicatorTop = rect.y + metrics.verticalSpacing;
     const int indicatorBottom = indicatorTop + menuHeight - arrowSize;
 
@@ -798,14 +813,14 @@ void BaseTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount
     constexpr int paginationGutter = 30;
     const int tileSidePadding = metrics.contentSidePadding + (totalPages > 1 ? paginationGutter / 2 : 0);
     const int tileWidth = rect.width - tileSidePadding * 2;
-    const Rect tileRect{rect.x + tileSidePadding, tileY, tileWidth, metrics.menuRowHeight};
-    TouchRegistry::getInstance().add(buttonMenuTouchTarget(tileRect, rect, i == buttonCount - 1, metrics.menuSpacing),
+    const Rect tileRect{rect.x + tileSidePadding, tileY, tileWidth, rowHeight};
+    TouchRegistry::getInstance().add(buttonMenuTouchTarget(tileRect, rect, i == buttonCount - 1, spacing),
                                      i, TouchRegistry::Item);
 
     if (selected) {
-      renderer.fillRect(rect.x + tileSidePadding, tileY, tileWidth, metrics.menuRowHeight);
+      renderer.fillRect(rect.x + tileSidePadding, tileY, tileWidth, rowHeight);
     } else {
-      renderer.drawRect(rect.x + tileSidePadding, tileY, tileWidth, metrics.menuRowHeight);
+      renderer.drawRect(rect.x + tileSidePadding, tileY, tileWidth, rowHeight);
     }
 
     const char* label = buttonLabel != nullptr ? buttonLabel(i) : "";
@@ -814,7 +829,7 @@ void BaseTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount
     const int textX = rect.x + tileSidePadding + (tileWidth - textWidth) / 2;
     const int lineHeight = renderer.getLineHeight(UI_10_FONT_ID);
     const int textY =
-        tileY + (metrics.menuRowHeight - lineHeight) / 2;  // vertically centered assuming y is top of text
+        tileY + (rowHeight - lineHeight) / 2;  // vertically centered assuming y is top of text
     // Invert text when the tile is selected, to contrast with the filled background
     renderer.drawText(UI_10_FONT_ID, textX, textY, label, selectedIndex != i);
   }

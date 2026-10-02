@@ -101,6 +101,7 @@ inline esp_sleep_wakeup_cause_t esp_sleep_get_wakeup_cause() { return ESP_SLEEP_
 #include "activities/settings/OtaUpdateActivity.h"
 #include "activities/settings/SdFirmwareUpdateActivity.h"
 #include "components/UITheme.h"
+#include "apps_local/Shelf.h"
 #include "components/icons/tablerFilledIcons.h"
 #include "fontIds.h"
 #include "network/UsbSerialFileTransfer.h"
@@ -1533,6 +1534,11 @@ void setup() {
     // by network screens. Keep X3's existing full refresh behavior unchanged.
     const auto homeRefreshMode = gpio.deviceIsX3() ? HalDisplay::FULL_REFRESH : HalDisplay::HALF_REFRESH;
     activityManager.goHome(HomeMenuItem::NONE, homeRefreshMode);
+  } else if (shelf::autostartFromEnv(renderer, mappedInputManager)) {
+    // Autostarted shelf item from CROSSPLAY_AUTOSTART
+  } else if (!mappedInputManager.isPressed(MappedInputManager::Button::Back) &&
+             shelf::resumeFromWake(renderer, mappedInputManager)) {
+    // Resumed shelf app from wake
   } else if (APP_STATE.openEpubPath.empty() || !APP_STATE.lastSleepFromReader ||
              mappedInputManager.isPressed(MappedInputManager::Button::Back) || APP_STATE.readerActivityLoadCount > 0) {
     // Boot to home screen if no book is open, last sleep was not from reader, back button is held, or reader activity

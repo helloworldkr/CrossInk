@@ -619,13 +619,28 @@ void LyraTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount
                                const std::function<UIIcon(int index)>& rowIcon) const {
   const auto& menuMetrics = UITheme::getInstance().getMetrics();
 
-  constexpr int maxVisibleItems = 7;
-  const int pageItems = maxVisibleItems;
+  int rowHeight = menuMetrics.menuRowHeight;
+  int spacing = menuMetrics.menuSpacing;
+  if (buttonCount > 0) {
+    const int requiredHeight = buttonCount * rowHeight + (buttonCount - 1) * spacing;
+    if (requiredHeight > rect.height && rect.height > 0) {
+      const int availableForRows = rect.height - (buttonCount - 1) * 3;
+      const int candidateHeight = availableForRows / buttonCount;
+      if (candidateHeight >= 38) {
+        rowHeight = std::min(rowHeight, candidateHeight);
+        spacing = std::max(2, (rect.height - buttonCount * rowHeight) / std::max(1, buttonCount - 1));
+        spacing = std::min(spacing, static_cast<int>(menuMetrics.menuSpacing));
+      }
+    }
+  }
+
+  const int rowStep = rowHeight + spacing;
+  const int pageItems = std::max(1, (rect.height + spacing) / rowStep);
   const int totalPages = (buttonCount + pageItems - 1) / pageItems;
 
   if (totalPages > 1) {
     const int scrollAreaHeight =
-        maxVisibleItems * (menuMetrics.menuRowHeight + menuMetrics.menuSpacing) - menuMetrics.menuSpacing;
+        pageItems * rowStep - spacing;
     const int scrollBarHeight = (scrollAreaHeight * pageItems) / buttonCount;
     const int currentPage = selectedIndex / pageItems;
     const int scrollBarY = rect.y + ((scrollAreaHeight - scrollBarHeight) * currentPage) / (totalPages - 1);
@@ -644,10 +659,10 @@ void LyraTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount
       tileWidth -= (LyraMetrics::values.scrollBarWidth + LyraMetrics::values.scrollBarRightOffset);
     }
     Rect tileRect = Rect{rect.x + menuMetrics.contentSidePadding,
-                         rect.y + displayIndex * (menuMetrics.menuRowHeight + menuMetrics.menuSpacing), tileWidth,
-                         menuMetrics.menuRowHeight};
+                         rect.y + displayIndex * rowStep, tileWidth,
+                         rowHeight};
     TouchRegistry::getInstance().add(
-        buttonMenuTouchTarget(tileRect, rect, i == buttonCount - 1, menuMetrics.menuSpacing), i, TouchRegistry::Item);
+        buttonMenuTouchTarget(tileRect, rect, i == buttonCount - 1, spacing), i, TouchRegistry::Item);
 
     const bool selected = selectedIndex == i;
 
@@ -659,18 +674,18 @@ void LyraTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount
     if (!label) label = "";
     int textX = tileRect.x + 16;
     const int lineHeight = renderer.getLineHeight(UI_12_FONT_ID);
-    const int textY = tileRect.y + (menuMetrics.menuRowHeight - lineHeight) / 2;
+    const int textY = tileRect.y + (rowHeight - lineHeight) / 2;
 
     if (rowIcon != nullptr) {
       UIIcon icon = rowIcon(i);
       if (icon == UIIcon::BookmarkIcon) {
         // Draw a small bookmark ribbon icon to match the status bar ribbon.
         const int ribbonWidth = 16;
-        const int ribbonHeight = 22;
+        const int ribbonHeight = std::min(22, rowHeight - 6);
         const int notchSize = 6;
         // Center the ribbon horizontally within the mainMenuIconSize box
         const int iconX = textX + (mainMenuIconSize - ribbonWidth) / 2;
-        const int iconY = textY + 4;
+        const int iconY = textY + (lineHeight - ribbonHeight) / 2;
         const int centerX = iconX + ribbonWidth / 2;
 
         const int polyX[5] = {iconX, iconX + ribbonWidth, iconX + ribbonWidth, centerX, iconX};
@@ -681,7 +696,7 @@ void LyraTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount
       } else {
         const freeink::Icon* iconBitmap = iconForName(icon, mainMenuIconSize);
         if (iconBitmap != nullptr) {
-          drawLucideIcon(renderer, *iconBitmap, textX, textY + 3 + mainMenuIconYOffset(icon));
+          drawLucideIcon(renderer, *iconBitmap, textX, tileRect.y + (rowHeight - mainMenuIconSize) / 2);
           textX += mainMenuIconSize + hPaddingInSelection + 2;
         }
       }
