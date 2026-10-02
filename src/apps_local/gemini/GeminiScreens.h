@@ -21,6 +21,7 @@ enum : fui::ActionId {
   ActionRetry = 417,
   ActionQuickPrompt = 418,
   ActionDismissNotice = 419,
+  ActionSelectModel = 420,
 };
 
 struct WelcomeModel {
@@ -29,12 +30,12 @@ struct WelcomeModel {
   bool tokenFound = false;
   std::string tokenSource;
   std::string maskedToken;
-  std::string modelName = "gemini-2.0-flash";
+  std::string modelName = "gemini-2.5-flash";
 };
 
 struct ThinkingModel {
   std::string prompt;
-  std::string modelName = "gemini-2.0-flash";
+  std::string modelName = "gemini-2.5-flash";
 };
 
 struct ResponseModel {
@@ -43,7 +44,7 @@ struct ResponseModel {
   int currentPage = 0;
   int totalPages = 1;
   int linesPerPage = 25;
-  std::string modelName = "gemini-2.0-flash";
+  std::string modelName = "gemini-2.5-flash";
   bool savedToNotes = false;
 };
 
@@ -53,6 +54,7 @@ struct ErrorModel {
   bool showWifiBtn = false;
   bool showKeyBtn = false;
   bool showRetryBtn = false;
+  bool showModelBtn = false;
 };
 
 // Screen renderers
@@ -62,7 +64,10 @@ void drawResponse(toybox::Screen& screen, const ResponseModel& model);
 void drawError(toybox::Screen& screen, const ErrorModel& model);
 void drawNotice(toybox::Screen& screen, const char* title, const char* message);
 
-// Calculate total lines and pages using exact DrawTarget text metrics
+// Text layout & pagination metrics
+int responseTextHeight(const fui::DeviceContext& device);
+int responseLinesPerPage(const fui::DrawTarget& target, const fui::DeviceContext& device);
 int calculateTotalLines(const fui::DrawTarget& target, int16_t width, const std::string& text);
+int calculateTotalPages(int totalLines, int linesPerPage);
 
 }  // namespace geminiui

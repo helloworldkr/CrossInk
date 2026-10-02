@@ -11,6 +11,9 @@
 namespace geminiui {
 namespace {
 
+constexpr int kBodyTop = toybox::kBodyTop;
+constexpr int kFooterHeight = toybox::kPillHeight;
+
 fui::TextStyle style(const fui::FontId font, const fui::TextAlign align = fui::TextAlign::Left,
                      const fui::Color color = fui::Color::Black, const uint8_t maxLines = 1) {
   fui::TextStyle s;
@@ -19,6 +22,17 @@ fui::TextStyle style(const fui::FontId font, const fui::TextAlign align = fui::T
   s.color = color;
   s.maxLines = maxLines;
   return s;
+}
+
+fui::Rect footerBand(const fui::DeviceContext& device) {
+  return fui::makeRect(toybox::kMargin, static_cast<int16_t>(device.height - toybox::kMargin - kFooterHeight),
+                       static_cast<int16_t>(device.width - 2 * toybox::kMargin), kFooterHeight);
+}
+
+fui::Rect contentBand(const fui::DeviceContext& device) {
+  const fui::Rect footer = footerBand(device);
+  return fui::makeRect(toybox::kMargin, kBodyTop, footer.width,
+                       static_cast<int16_t>(footer.y - toybox::kGutter - kBodyTop));
 }
 
 void chrome(toybox::Screen& screen, const char* title, const char* rightLabel = nullptr) {
@@ -41,68 +55,118 @@ void chrome(toybox::Screen& screen, const char* title, const char* rightLabel = 
 }
 
 void cardBox(toybox::Screen& screen, const fui::Rect& box) {
-  const fui::Paint ink = fui::Paint::solid(fui::Color::Black);
-  const int w = toybox::kFrame;
-  screen.target().fill(fui::makeRect(box.x, box.y, box.width, w), ink);
-  screen.target().fill(fui::makeRect(box.x, box.bottom() - w, box.width, w), ink);
-  screen.target().fill(fui::makeRect(box.x, box.y, w, box.height), ink);
-  screen.target().fill(fui::makeRect(box.right() - w, box.y, w, box.height), ink);
+  screen.target().stroke(box, fui::Paint::solid(fui::Color::Black), 2, 4);
 }
 
 }  // namespace
+
+int responseTextHeight(const fui::DeviceContext& device) {
+  const int footerY = device.height - toybox::kMargin - kFooterHeight;
+  const int textY = kBodyTop + 36 + 10;
+  const int textH = footerY - 10 - textY;
+  return textH > 0 ? textH : 200;
+}
+
+int responseLinesPerPage(const fui::DrawTarget& target, const fui::DeviceContext& device) {
+  const int textH = responseTextHeight(device);
+  const int16_t lh = target.lineHeight(toybox::kBodyFont);
+  if (lh <= 0) return 10;
+  const int lines = textH / lh;
+  return lines > 0 ? lines : 10;
+}
+
+int calculateTotalLines(const fui::DrawTarget& target, int16_t width, const std::string& text) {
+  if (text.empty() || width <= 0) return 0;
+  fui::TextStyle st = style(toybox::kBodyFont, fui::TextAlign::Left);
+  fui::TextAreaMetrics m = fui::textAreaMeasure(target, width, text.c_str(), st, 0);
+  return static_cast<int>(m.lineCount);
+}
+
+int calculateTotalPages(int totalLines, int linesPerPage) {
+  if (linesPerPage <= 0) return 1;
+  int pages = (totalLines + linesPerPage - 1) / linesPerPage;
+  return pages > 0 ? pages : 1;
+}
 
 void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
   chrome(screen, "GEMINI AI", model.modelName.c_str());
 
   const fui::DeviceContext& device = screen.device();
-  const int contentW = device.width - 2 * toybox::kMargin;
+  const fui::Rect band = contentBand(device);
+  const fui::Rect footer = footerBand(device);
 
-  // Status card
-  const fui::Rect statusBox = screen.takeTop(150, 16);
-  cardBox(screen, statusBox);
+  // Two-column split on landscape display:
+  // Left: Assistant Status & Guidance Card
+  // Right: Quick Prompt Buttons
+  constexpr int leftW = 344;
+  constexpr int gap = 14;
+  const int rightW = band.width - leftW - gap;
 
-  fui::TextStyle headerStyle = style(toybox::kDisplayFont, fui::TextAlign::Left);
-  screen.target().text(fui::makeRect(statusBox.x + 16, statusBox.y + 14, statusBox.width - 32, 24),
-                       "Google Gemini Assistant", headerStyle);
+  // --- Left Column: Status Card ---
+  const fui::Rect leftCard = fui::makeRect(band.x, band.y, leftW, band.height);
+  cardBox(screen, leftCard);
+
+  const int innerX = leftCard.x + 14;
+  const int innerW = leftCard.width - 28;
+  int curY = leftCard.y + 14;
+
+  screen.target().text(fui::makeRect(innerX, curY, innerW, 18), "ASSISTANT STATUS",
+                       style(toybox::kSmallFont, fui::TextAlign::Left));
+  curY += 22;
+
+  screen.target().text(fui::makeRect(innerX, curY, innerW, 26), "Google Gemini",
+                       style(toybox::kBodyFont, fui::TextAlign::Left));
+  curY += 34;
+
+  // Divider
+  screen.target().fill(fui::makeRect(innerX, curY, innerW, 1), fui::Paint::solid(fui::Color::Black));
+  curY += 10;
 
   // Wi-Fi line
-  fui::TextStyle bodyStyle = style(toybox::kBodyFont, fui::TextAlign::Left);
-  std::string wifiStr = model.wifiConnected ? ("Wi-Fi: Connected (" + model.wifiSsid + ")") : "Wi-Fi: Disconnected";
-  screen.target().text(fui::makeRect(statusBox.x + 16, statusBox.y + 48, statusBox.width - 32, 22), wifiStr.c_str(),
-                       bodyStyle);
+  std::string wifiStr = model.wifiConnected ? ("Wi-Fi: " + model.wifiSsid) : "Wi-Fi: Disconnected";
+  screen.target().text(fui::makeRect(innerX, curY, innerW, 20), wifiStr.c_str(),
+                       style(toybox::kSmallFont, fui::TextAlign::Left));
+  curY += 24;
 
-  // Token line
-  std::string tokenStr;
-  if (model.tokenFound) {
-    tokenStr = "Key: " + model.tokenSource + " [" + model.maskedToken + "]";
-  } else {
-    tokenStr = "Key: Not found in /XTData/llm_token";
-  }
-  screen.target().text(fui::makeRect(statusBox.x + 16, statusBox.y + 74, statusBox.width - 32, 22), tokenStr.c_str(),
-                       bodyStyle);
+  // Key line
+  std::string keyStr = model.tokenFound ? ("Key: Ready [" + model.maskedToken + "]") : "Key: Missing in /XTData/llm_token";
+  screen.target().text(fui::makeRect(innerX, curY, innerW, 20), keyStr.c_str(),
+                       style(toybox::kSmallFont, fui::TextAlign::Left));
+  curY += 24;
 
-  // Hint line
-  fui::TextStyle hintStyle = style(toybox::kSmallFont, fui::TextAlign::Left);
-  std::string hintStr = model.tokenFound ? "Ready to answer questions, explain concepts & summarize."
-                                         : "Place API key in /XTData/llm_token or tap Enter Key.";
-  screen.target().text(fui::makeRect(statusBox.x + 16, statusBox.y + 104, statusBox.width - 32, 20), hintStr.c_str(),
-                       hintStyle);
+  // Engine line
+  std::string engineStr = "Model: " + model.modelName;
+  screen.target().text(fui::makeRect(innerX, curY, innerW, 20), engineStr.c_str(),
+                       style(toybox::kSmallFont, fui::TextAlign::Left));
+  curY += 28;
 
-  // Quick prompt suggestions
-  screen.takeTop(8);
-  fui::TextStyle sectionTitle = style(toybox::kBodyFont, fui::TextAlign::Left);
-  const fui::Rect secBox = screen.takeTop(26, 8);
-  screen.target().text(secBox, "QUICK PROMPTS", sectionTitle);
+  // Divider
+  screen.target().fill(fui::makeRect(innerX, curY, innerW, 1), fui::Paint::solid(fui::Color::Black));
+  curY += 10;
+
+  // Guidance tip
+  const char* guide = "Tap a Quick Prompt or 'ASK GEMINI' to type with the keyboard. Or press OK button.";
+  screen.target().text(fui::makeRect(innerX, curY, innerW, 70), guide,
+                       style(toybox::kSmallFont, fui::TextAlign::Left, fui::Color::Black, 3));
+
+  // --- Right Column: Quick Prompts ---
+  const int rightX = band.x + leftW + gap;
+  screen.target().text(fui::makeRect(rightX, band.y, rightW, 20), "QUICK PROMPTS",
+                       style(toybox::kSmallFont, fui::TextAlign::Left));
 
   const char* chips[] = {
-      "Explain this in simple terms",
-      "Summarize the main ideas",
-      "Give key vocabulary & definitions",
-      "Brainstorm creative story ideas",
+      "Explain in simple terms...",
+      "Summarize key ideas...",
+      "Key concepts & definitions...",
+      "Brainstorm creative ideas...",
   };
 
+  constexpr int chipH = 48;
+  constexpr int chipGap = 8;
+  const int chipsStartY = band.y + 26;
+
   for (int i = 0; i < 4; ++i) {
-    const fui::Rect chipBox = screen.takeTop(44, 8);
+    const fui::Rect chipBox = fui::makeRect(rightX, static_cast<int16_t>(chipsStartY + i * (chipH + chipGap)), rightW, chipH);
     fui::ButtonProps btn;
     btn.label = chips[i];
     btn.action = ActionQuickPrompt;
@@ -111,253 +175,362 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
     screen.button(btn, chipBox);
   }
 
-  // Bottom action buttons
-  screen.takeTop(16);
+  // --- Bottom Footer Band ---
+  constexpr int secW = 116;
+  constexpr int gapW = 10;
+  const int primW = footer.width - (secW * 3 + gapW * 3);
+
   if (!model.wifiConnected) {
-    const fui::Rect wifiBtnBox = screen.takeTop(52, 10);
-    fui::ButtonProps btn;
-    btn.label = "CONNECT TO WI-FI";
-    btn.action = ActionConnectWifi;
-    btn.styles = toybox::invertedStyles();
-    screen.button(btn, wifiBtnBox);
+    fui::ButtonProps wifiBtn;
+    wifiBtn.label = "CONNECT TO WI-FI";
+    wifiBtn.action = ActionConnectWifi;
+    wifiBtn.styles = toybox::invertedStyles();
+    screen.button(wifiBtn, fui::makeRect(footer.x, footer.y, primW, footer.height));
+
+    fui::ButtonProps modelBtn;
+    modelBtn.label = "MODEL";
+    modelBtn.action = ActionSelectModel;
+    modelBtn.styles = toybox::rowStyles();
+    screen.button(modelBtn, fui::makeRect(footer.x + primW + gapW, footer.y, secW, footer.height));
+
+    fui::ButtonProps keyBtn;
+    keyBtn.label = "SET KEY";
+    keyBtn.action = ActionSetKey;
+    keyBtn.styles = toybox::rowStyles();
+    screen.button(keyBtn, fui::makeRect(footer.x + primW + gapW + secW + gapW, footer.y, secW, footer.height));
+
+    fui::ButtonProps askBtn;
+    askBtn.label = "ASK";
+    askBtn.action = ActionAsk;
+    askBtn.styles = toybox::rowStyles();
+    screen.button(askBtn, fui::makeRect(footer.x + primW + (gapW + secW) * 2 + gapW, footer.y, secW, footer.height));
   } else if (!model.tokenFound) {
-    const fui::Rect keyBtnBox = screen.takeTop(52, 10);
-    fui::ButtonProps btn;
-    btn.label = "ENTER API KEY";
-    btn.action = ActionSetKey;
-    btn.styles = toybox::invertedStyles();
-    screen.button(btn, keyBtnBox);
+    fui::ButtonProps keyBtn;
+    keyBtn.label = "ENTER API KEY";
+    keyBtn.action = ActionSetKey;
+    keyBtn.styles = toybox::invertedStyles();
+    screen.button(keyBtn, fui::makeRect(footer.x, footer.y, primW, footer.height));
+
+    fui::ButtonProps modelBtn;
+    modelBtn.label = "MODEL";
+    modelBtn.action = ActionSelectModel;
+    modelBtn.styles = toybox::rowStyles();
+    screen.button(modelBtn, fui::makeRect(footer.x + primW + gapW, footer.y, secW, footer.height));
+
+    fui::ButtonProps wifiBtn;
+    wifiBtn.label = "WI-FI";
+    wifiBtn.action = ActionConnectWifi;
+    wifiBtn.styles = toybox::rowStyles();
+    screen.button(wifiBtn, fui::makeRect(footer.x + primW + gapW + secW + gapW, footer.y, secW, footer.height));
+
+    fui::ButtonProps askBtn;
+    askBtn.label = "ASK";
+    askBtn.action = ActionAsk;
+    askBtn.styles = toybox::rowStyles();
+    screen.button(askBtn, fui::makeRect(footer.x + primW + (gapW + secW) * 2 + gapW, footer.y, secW, footer.height));
   } else {
-    const fui::Rect askBtnBox = screen.takeTop(52, 10);
-    fui::ButtonProps btn;
-    btn.label = "ASK GEMINI...";
-    btn.action = ActionAsk;
-    btn.styles = toybox::invertedStyles();
-    screen.button(btn, askBtnBox);
+    fui::ButtonProps askBtn;
+    askBtn.label = "ASK GEMINI... (TAP OR PRESS OK)";
+    askBtn.action = ActionAsk;
+    askBtn.styles = toybox::invertedStyles();
+    screen.button(askBtn, fui::makeRect(footer.x, footer.y, primW, footer.height));
+
+    fui::ButtonProps modelBtn;
+    modelBtn.label = "MODEL";
+    modelBtn.action = ActionSelectModel;
+    modelBtn.styles = toybox::rowStyles();
+    screen.button(modelBtn, fui::makeRect(footer.x + primW + gapW, footer.y, secW, footer.height));
+
+    fui::ButtonProps keyBtn;
+    keyBtn.label = "KEY";
+    keyBtn.action = ActionSetKey;
+    keyBtn.styles = toybox::rowStyles();
+    screen.button(keyBtn, fui::makeRect(footer.x + primW + gapW + secW + gapW, footer.y, secW, footer.height));
+
+    fui::ButtonProps wifiBtn;
+    wifiBtn.label = "WI-FI";
+    wifiBtn.action = ActionConnectWifi;
+    wifiBtn.styles = toybox::rowStyles();
+    screen.button(wifiBtn, fui::makeRect(footer.x + primW + (gapW + secW) * 2 + gapW, footer.y, secW, footer.height));
   }
-
-  // Footer options
-  const fui::Rect footerBox = screen.takeTop(44, 0);
-  const int halfW = (contentW - 12) / 2;
-
-  fui::ButtonProps keyBtn;
-  keyBtn.label = model.tokenFound ? "CHANGE KEY" : "SET KEY";
-  keyBtn.action = ActionSetKey;
-  keyBtn.styles = toybox::rowStyles();
-  screen.button(keyBtn, fui::makeRect(footerBox.x, footerBox.y, halfW, footerBox.height));
-
-  fui::ButtonProps netBtn;
-  netBtn.label = "WI-FI SETTINGS";
-  netBtn.action = ActionConnectWifi;
-  netBtn.styles = toybox::rowStyles();
-  screen.button(netBtn, fui::makeRect(footerBox.x + halfW + 12, footerBox.y, halfW, footerBox.height));
 }
 
 void drawThinking(toybox::Screen& screen, const ThinkingModel& model) {
   chrome(screen, "GEMINI AI", "THINKING");
 
-  // Prompt display box
-  const fui::Rect promptBox = screen.takeTop(100, 24);
+  const fui::DeviceContext& device = screen.device();
+  const fui::Rect band = contentBand(device);
+  const fui::Rect footer = footerBand(device);
+
+  // Top Card: Prompt recap
+  const fui::Rect promptBox = fui::makeRect(band.x, band.y, band.width, 96);
   cardBox(screen, promptBox);
 
-  fui::TextStyle qTag = style(toybox::kSmallFont, fui::TextAlign::Left);
-  screen.target().text(fui::makeRect(promptBox.x + 14, promptBox.y + 10, promptBox.width - 28, 22), "PROMPT:", qTag);
+  screen.target().text(fui::makeRect(promptBox.x + 16, promptBox.y + 12, promptBox.width - 32, 18), "QUESTION",
+                       style(toybox::kSmallFont, fui::TextAlign::Left));
 
-  fui::TextStyle promptStyle = style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 3);
-  screen.target().text(fui::makeRect(promptBox.x + 14, promptBox.y + 34, promptBox.width - 28, 56),
-                       model.prompt.c_str(), promptStyle);
+  std::string pFitted = toybox::fitLines(screen.target(), model.prompt.c_str(), promptBox.width - 32, 2,
+                                         style(toybox::kBodyFont, fui::TextAlign::Left));
+  screen.target().text(fui::makeRect(promptBox.x + 16, promptBox.y + 36, promptBox.width - 32, 50),
+                       pFitted.c_str(), style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 2));
 
-  // Thinking card
-  screen.takeTop(20);
-  const fui::Rect thinkBox = screen.takeTop(160, 20);
+  // Center Card: Thinking Status
+  const int thinkY = band.y + 110;
+  const fui::Rect thinkBox = fui::makeRect(band.x, thinkY, band.width, band.height - 110);
   cardBox(screen, thinkBox);
 
-  fui::TextStyle thinkTitle = style(toybox::kDisplayFont, fui::TextAlign::Center);
-  screen.target().text(fui::makeRect(thinkBox.x + 16, thinkBox.y + 36, thinkBox.width - 32, 28),
-                       "Thinking...", thinkTitle);
+  screen.target().text(fui::makeRect(thinkBox.x + 16, thinkBox.y + 36, thinkBox.width - 32, 30), "Thinking...",
+                       style(toybox::kBodyFont, fui::TextAlign::Center));
 
-  fui::TextStyle thinkSub = style(toybox::kBodyFont, fui::TextAlign::Center);
-  screen.target().text(fui::makeRect(thinkBox.x + 16, thinkBox.y + 74, thinkBox.width - 32, 24),
-                       "Querying Google Gemini API over Wi-Fi...", thinkSub);
+  screen.target().text(fui::makeRect(thinkBox.x + 16, thinkBox.y + 76, thinkBox.width - 32, 22),
+                       "Querying Google Gemini API over Wi-Fi...", style(toybox::kSmallFont, fui::TextAlign::Center));
 
-  fui::TextStyle modelSub = style(toybox::kSmallFont, fui::TextAlign::Center);
   std::string modelStr = "Model: " + model.modelName;
-  screen.target().text(fui::makeRect(thinkBox.x + 16, thinkBox.y + 106, thinkBox.width - 32, 20), modelStr.c_str(),
-                       modelSub);
+  screen.target().text(fui::makeRect(thinkBox.x + 16, thinkBox.y + 104, thinkBox.width - 32, 20), modelStr.c_str(),
+                       style(toybox::kSmallFont, fui::TextAlign::Center));
+
+  // Footer: Cancel button
+  fui::ButtonProps cancelBtn;
+  cancelBtn.label = "CANCEL (OR PRESS BACK)";
+  cancelBtn.action = ActionDismissNotice;
+  cancelBtn.styles = toybox::rowStyles();
+  screen.button(cancelBtn, footer);
 }
 
 void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
   char pageBuf[32];
   if (model.totalPages > 1) {
-    snprintf(pageBuf, sizeof(pageBuf), "Page %d/%d", model.currentPage + 1, model.totalPages);
+    snprintf(pageBuf, sizeof(pageBuf), "Page %d of %d", model.currentPage + 1, model.totalPages);
   } else {
     snprintf(pageBuf, sizeof(pageBuf), "%s", model.modelName.c_str());
   }
   chrome(screen, "GEMINI", pageBuf);
 
   const fui::DeviceContext& device = screen.device();
-  const int contentW = device.width - 2 * toybox::kMargin;
+  const fui::Rect band = contentBand(device);
+  const fui::Rect footer = footerBand(device);
 
-  // Prompt banner at top (compact)
-  const fui::Rect promptBanner = screen.takeTop(50, 10);
-  screen.target().fill(promptBanner, fui::Paint::solid(fui::Color::Black));
-  fui::TextStyle pStyle = style(toybox::kSmallFont, fui::TextAlign::Left, fui::Color::White);
+  // Top Question Banner (compact inverted black bar)
+  constexpr int bannerH = 34;
+  const fui::Rect qBanner = fui::makeRect(band.x, band.y, band.width, bannerH);
+  screen.target().fill(qBanner, fui::Paint::solid(fui::Color::Black), 4);
+
   std::string qText = "Q: " + model.prompt;
-  screen.target().text(fui::makeRect(promptBanner.x + 10, promptBanner.y + 14, promptBanner.width - 20, 24),
-                       qText.c_str(), pStyle);
+  std::string qFitted = toybox::fitLines(screen.target(), qText.c_str(), qBanner.width - 24, 1,
+                                         style(toybox::kSmallFont, fui::TextAlign::Left, fui::Color::White));
+  screen.target().text(fui::makeRect(qBanner.x + 12, qBanner.y + 7, qBanner.width - 24, 20),
+                       qFitted.c_str(), style(toybox::kSmallFont, fui::TextAlign::Left, fui::Color::White));
 
-  // Determine available body height
-  const int footerH = (model.totalPages > 1) ? 96 : 48;
-  const int bodyH = device.height - 210 - (model.totalPages > 1 ? 48 : 0);
+  // Response Text Area (strictly sized between banner and footer)
+  const int textY = band.y + bannerH + 10;
+  const int textH = footer.y - 10 - textY;
+  const fui::Rect textRect = fui::makeRect(band.x, static_cast<int16_t>(textY), band.width, static_cast<int16_t>(textH));
 
-  // Response text area
   fui::TextAreaProps area;
   area.text = model.responseText.c_str();
   area.style = style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 0);
   area.topLine = static_cast<uint32_t>(model.currentPage * model.linesPerPage);
   area.showCaret = false;
-  screen.textArea(area, static_cast<int16_t>(bodyH));
+  fui::textArea(screen.frame(), textRect, area);
 
-  // Footer buttons
+  // Bottom Footer Navigation & Actions
   if (model.totalPages > 1) {
-    // Upper row: Save Note & New Chat
-    const fui::Rect subFooter = screen.takeTop(42, 6);
-    const int subW = (contentW - 8) / 2;
+    // 5 buttons distributed side-by-side:
+    // [ < PREV ] [ ASK NEXT ] [ SAVE NOTE ] [ NEW CHAT ] [ NEXT > ]
+    constexpr int prevW = 116;
+    constexpr int nextW = 116;
+    constexpr int askW = 170;
+    constexpr int saveW = 168;
+    constexpr int newW = 144;
+    constexpr int btnGap = 10;
+    constexpr int totalW = prevW + askW + saveW + newW + nextW + 4 * btnGap; // 744
+    const int startX = footer.x + (footer.width - totalW) / 2;
 
-    fui::ButtonProps saveBtn;
-    saveBtn.label = model.savedToNotes ? "SAVED TO NOTES ✓" : "SAVE NOTE";
-    saveBtn.action = ActionSaveNote;
-    saveBtn.styles = toybox::rowStyles();
-    screen.button(saveBtn, fui::makeRect(subFooter.x, subFooter.y, subW, subFooter.height));
-
-    fui::ButtonProps newBtn;
-    newBtn.label = "NEW CHAT";
-    newBtn.action = ActionNewChat;
-    newBtn.styles = toybox::rowStyles();
-    screen.button(newBtn, fui::makeRect(subFooter.x + subW + 8, subFooter.y, subW, subFooter.height));
-
-    // Lower row: Navigation
-    const fui::Rect navFooter = screen.takeTop(46, 0);
-    const int btnW = (contentW - 16) / 3;
+    int curX = startX;
 
     fui::ButtonProps prevBtn;
     prevBtn.label = "< PREV";
     prevBtn.action = ActionPrevPage;
     prevBtn.styles = (model.currentPage > 0) ? toybox::rowStyles() : toybox::disabledButtonStyles();
-    screen.button(prevBtn, fui::makeRect(navFooter.x, navFooter.y, btnW, navFooter.height));
+    screen.button(prevBtn, fui::makeRect(curX, footer.y, prevW, footer.height));
+    curX += prevW + btnGap;
 
     fui::ButtonProps askBtn;
     askBtn.label = "ASK NEXT";
     askBtn.action = ActionAsk;
     askBtn.styles = toybox::invertedStyles();
-    screen.button(askBtn, fui::makeRect(navFooter.x + btnW + 8, navFooter.y, btnW, navFooter.height));
-
-    fui::ButtonProps nextBtn;
-    nextBtn.label = "NEXT >";
-    nextBtn.action = ActionNextPage;
-    nextBtn.styles = (model.currentPage < model.totalPages - 1) ? toybox::rowStyles() : toybox::disabledButtonStyles();
-    screen.button(nextBtn, fui::makeRect(navFooter.x + (btnW + 8) * 2, navFooter.y, btnW, navFooter.height));
-  } else {
-    const fui::Rect footerBox = screen.takeTop(48, 0);
-    const int btnW = (contentW - 16) / 3;
-
-    fui::ButtonProps askBtn;
-    askBtn.label = "ASK AGAIN";
-    askBtn.action = ActionAsk;
-    askBtn.styles = toybox::invertedStyles();
-    screen.button(askBtn, fui::makeRect(footerBox.x, footerBox.y, btnW, footerBox.height));
+    screen.button(askBtn, fui::makeRect(curX, footer.y, askW, footer.height));
+    curX += askW + btnGap;
 
     fui::ButtonProps saveBtn;
     saveBtn.label = model.savedToNotes ? "SAVED ✓" : "SAVE NOTE";
     saveBtn.action = ActionSaveNote;
     saveBtn.styles = toybox::rowStyles();
-    screen.button(saveBtn, fui::makeRect(footerBox.x + btnW + 8, footerBox.y, btnW, footerBox.height));
+    screen.button(saveBtn, fui::makeRect(curX, footer.y, saveW, footer.height));
+    curX += saveW + btnGap;
 
     fui::ButtonProps newBtn;
     newBtn.label = "NEW CHAT";
     newBtn.action = ActionNewChat;
     newBtn.styles = toybox::rowStyles();
-    screen.button(newBtn, fui::makeRect(footerBox.x + (btnW + 8) * 2, footerBox.y, btnW, footerBox.height));
+    screen.button(newBtn, fui::makeRect(curX, footer.y, newW, footer.height));
+    curX += newW + btnGap;
+
+    fui::ButtonProps nextBtn;
+    nextBtn.label = "NEXT >";
+    nextBtn.action = ActionNextPage;
+    nextBtn.styles = (model.currentPage < model.totalPages - 1) ? toybox::rowStyles() : toybox::disabledButtonStyles();
+    screen.button(nextBtn, fui::makeRect(curX, footer.y, nextW, footer.height));
+  } else {
+    // 3 buttons:
+    // [ ASK AGAIN ] [ SAVE NOTE ] [ NEW CHAT ]
+    const int btnW = (footer.width - 20) / 3;
+
+    fui::ButtonProps askBtn;
+    askBtn.label = "ASK AGAIN";
+    askBtn.action = ActionAsk;
+    askBtn.styles = toybox::invertedStyles();
+    screen.button(askBtn, fui::makeRect(footer.x, footer.y, btnW, footer.height));
+
+    fui::ButtonProps saveBtn;
+    saveBtn.label = model.savedToNotes ? "SAVED TO NOTES ✓" : "SAVE NOTE";
+    saveBtn.action = ActionSaveNote;
+    saveBtn.styles = toybox::rowStyles();
+    screen.button(saveBtn, fui::makeRect(footer.x + btnW + 10, footer.y, btnW, footer.height));
+
+    fui::ButtonProps newBtn;
+    newBtn.label = "NEW CHAT";
+    newBtn.action = ActionNewChat;
+    newBtn.styles = toybox::rowStyles();
+    screen.button(newBtn, fui::makeRect(footer.x + (btnW + 10) * 2, footer.y, btnW, footer.height));
   }
 }
 
 void drawError(toybox::Screen& screen, const ErrorModel& model) {
   chrome(screen, "GEMINI", "ERROR");
 
-  const fui::Rect errBox = screen.takeTop(180, 20);
-  cardBox(screen, errBox);
+  const fui::DeviceContext& device = screen.device();
+  const fui::Rect band = contentBand(device);
+  const fui::Rect footer = footerBand(device);
 
-  fui::TextStyle titleStyle = style(toybox::kDisplayFont, fui::TextAlign::Left);
-  screen.target().text(fui::makeRect(errBox.x + 16, errBox.y + 16, errBox.width - 32, 26), model.title.c_str(),
-                       titleStyle);
+  // Error Card
+  cardBox(screen, band);
 
-  fui::TextStyle msgStyle = style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 5);
-  screen.target().text(fui::makeRect(errBox.x + 16, errBox.y + 50, errBox.width - 32, 110), model.message.c_str(),
-                       msgStyle);
+  const int innerX = band.x + 20;
+  const int innerW = band.width - 40;
 
-  screen.takeTop(20);
+  screen.target().text(fui::makeRect(innerX, band.y + 16, innerW, 18), "ERROR DETAILS",
+                       style(toybox::kSmallFont, fui::TextAlign::Left));
 
-  if (model.showRetryBtn) {
-    const fui::Rect retryBox = screen.takeTop(48, 10);
-    fui::ButtonProps btn;
-    btn.label = "RETRY";
-    btn.action = ActionRetry;
-    btn.styles = toybox::invertedStyles();
-    screen.button(btn, retryBox);
+  screen.target().text(fui::makeRect(innerX, band.y + 40, innerW, 26), model.title.c_str(),
+                       style(toybox::kBodyFont, fui::TextAlign::Left));
+
+  screen.target().fill(fui::makeRect(innerX, band.y + 72, innerW, 1), fui::Paint::solid(fui::Color::Black));
+
+  screen.target().text(fui::makeRect(innerX, band.y + 84, innerW, band.height - 100), model.message.c_str(),
+                       style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 6));
+
+  // Contextual Footer Buttons
+  if (model.showModelBtn) {
+    constexpr int gap = 10;
+    const int btnW = (footer.width - gap * 2) / 3;
+
+    fui::ButtonProps modelBtn;
+    modelBtn.label = "CHANGE MODEL";
+    modelBtn.action = ActionSelectModel;
+    modelBtn.styles = toybox::invertedStyles();
+    screen.button(modelBtn, fui::makeRect(footer.x, footer.y, btnW, footer.height));
+
+    fui::ButtonProps retryBtn;
+    retryBtn.label = "RETRY";
+    retryBtn.action = ActionRetry;
+    retryBtn.styles = toybox::rowStyles();
+    screen.button(retryBtn, fui::makeRect(footer.x + btnW + gap, footer.y, btnW, footer.height));
+
+    fui::ButtonProps dismissBtn;
+    dismissBtn.label = "DISMISS";
+    dismissBtn.action = ActionDismissNotice;
+    dismissBtn.styles = toybox::rowStyles();
+    screen.button(dismissBtn, fui::makeRect(footer.x + (btnW + gap) * 2, footer.y, btnW, footer.height));
+  } else if (model.showRetryBtn) {
+    const int halfW = (footer.width - 12) / 2;
+
+    fui::ButtonProps retryBtn;
+    retryBtn.label = "RETRY";
+    retryBtn.action = ActionRetry;
+    retryBtn.styles = toybox::invertedStyles();
+    screen.button(retryBtn, fui::makeRect(footer.x, footer.y, halfW, footer.height));
+
+    fui::ButtonProps dismissBtn;
+    dismissBtn.label = "DISMISS";
+    dismissBtn.action = ActionDismissNotice;
+    dismissBtn.styles = toybox::rowStyles();
+    screen.button(dismissBtn, fui::makeRect(footer.x + halfW + 12, footer.y, halfW, footer.height));
+  } else if (model.showWifiBtn) {
+    const int halfW = (footer.width - 12) / 2;
+
+    fui::ButtonProps wifiBtn;
+    wifiBtn.label = "CONNECT TO WI-FI";
+    wifiBtn.action = ActionConnectWifi;
+    wifiBtn.styles = toybox::invertedStyles();
+    screen.button(wifiBtn, fui::makeRect(footer.x, footer.y, halfW, footer.height));
+
+    fui::ButtonProps dismissBtn;
+    dismissBtn.label = "DISMISS";
+    dismissBtn.action = ActionDismissNotice;
+    dismissBtn.styles = toybox::rowStyles();
+    screen.button(dismissBtn, fui::makeRect(footer.x + halfW + 12, footer.y, halfW, footer.height));
+  } else if (model.showKeyBtn) {
+    const int halfW = (footer.width - 12) / 2;
+
+    fui::ButtonProps keyBtn;
+    keyBtn.label = "ENTER API KEY";
+    keyBtn.action = ActionSetKey;
+    keyBtn.styles = toybox::invertedStyles();
+    screen.button(keyBtn, fui::makeRect(footer.x, footer.y, halfW, footer.height));
+
+    fui::ButtonProps dismissBtn;
+    dismissBtn.label = "DISMISS";
+    dismissBtn.action = ActionDismissNotice;
+    dismissBtn.styles = toybox::rowStyles();
+    screen.button(dismissBtn, fui::makeRect(footer.x + halfW + 12, footer.y, halfW, footer.height));
+  } else {
+    fui::ButtonProps dismissBtn;
+    dismissBtn.label = "DISMISS";
+    dismissBtn.action = ActionDismissNotice;
+    dismissBtn.styles = toybox::invertedStyles();
+    screen.button(dismissBtn, footer);
   }
-
-  if (model.showWifiBtn) {
-    const fui::Rect wifiBox = screen.takeTop(48, 10);
-    fui::ButtonProps btn;
-    btn.label = "CONNECT TO WI-FI";
-    btn.action = ActionConnectWifi;
-    btn.styles = toybox::invertedStyles();
-    screen.button(btn, wifiBox);
-  }
-
-  if (model.showKeyBtn) {
-    const fui::Rect keyBox = screen.takeTop(48, 10);
-    fui::ButtonProps btn;
-    btn.label = "ENTER API KEY";
-    btn.action = ActionSetKey;
-    btn.styles = toybox::invertedStyles();
-    screen.button(btn, keyBox);
-  }
-
-  const fui::Rect backBox = screen.takeTop(48, 0);
-  fui::ButtonProps backBtn;
-  backBtn.label = "DISMISS";
-  backBtn.action = ActionDismissNotice;
-  backBtn.styles = toybox::rowStyles();
-  screen.button(backBtn, backBox);
 }
 
 void drawNotice(toybox::Screen& screen, const char* title, const char* message) {
   chrome(screen, "GEMINI", "NOTICE");
 
-  const fui::Rect box = screen.takeTop(160, 20);
-  cardBox(screen, box);
+  const fui::DeviceContext& device = screen.device();
+  const fui::Rect band = contentBand(device);
+  const fui::Rect footer = footerBand(device);
 
-  fui::TextStyle titleStyle = style(toybox::kDisplayFont, fui::TextAlign::Left);
-  screen.target().text(fui::makeRect(box.x + 16, box.y + 16, box.width - 32, 26), title, titleStyle);
+  cardBox(screen, band);
 
-  fui::TextStyle msgStyle = style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 4);
-  screen.target().text(fui::makeRect(box.x + 16, box.y + 50, box.width - 32, 90), message, msgStyle);
+  const int innerX = band.x + 20;
+  const int innerW = band.width - 40;
 
-  screen.takeTop(20);
-  const fui::Rect okBox = screen.takeTop(48, 0);
+  screen.target().text(fui::makeRect(innerX, band.y + 16, innerW, 18), "SYSTEM NOTICE",
+                       style(toybox::kSmallFont, fui::TextAlign::Left));
+
+  screen.target().text(fui::makeRect(innerX, band.y + 40, innerW, 26), title,
+                       style(toybox::kBodyFont, fui::TextAlign::Left));
+
+  screen.target().fill(fui::makeRect(innerX, band.y + 72, innerW, 1), fui::Paint::solid(fui::Color::Black));
+
+  screen.target().text(fui::makeRect(innerX, band.y + 84, innerW, band.height - 100), message,
+                       style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 6));
+
   fui::ButtonProps okBtn;
   okBtn.label = "OK";
   okBtn.action = ActionDismissNotice;
   okBtn.styles = toybox::invertedStyles();
-  screen.button(okBtn, okBox);
-}
-
-int calculateTotalLines(const fui::DrawTarget& target, int16_t width, const std::string& text) {
-  if (text.empty() || width <= 0) return 0;
-  fui::TextStyle st = style(toybox::kBodyFont, fui::TextAlign::Left);
-  fui::TextAreaMetrics m = fui::textAreaMeasure(target, width, text.c_str(), st, 0);
-  return static_cast<int>(m.lineCount);
+  screen.button(okBtn, footer);
 }
 
 }  // namespace geminiui

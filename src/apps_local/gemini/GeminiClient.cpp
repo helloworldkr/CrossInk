@@ -127,7 +127,7 @@ Response Client::parseResponse(int httpCode, const std::string& responseBody) co
 }
 
 Response Client::query(const std::string& prompt, const std::vector<Message>& history, const std::string& token,
-                       const std::string& model) {
+                       const std::string& model, int depth) {
   Response res;
   if (token.empty()) {
     res.success = false;
@@ -140,12 +140,14 @@ Response Client::query(const std::string& prompt, const std::vector<Message>& hi
     return res;
   }
 
-  std::string activeModel = model.empty() ? "gemini-2.0-flash" : model;
+  std::string activeModel = model.empty() ? "gemini-2.5-flash" : model;
+  res.usedModel = activeModel;
   std::string url = "https://generativelanguage.googleapis.com/v1beta/models/" + activeModel +
                     ":generateContent?key=" + token;
   std::string payload = buildPayload(prompt, history);
 
-  LOG_INF("GEMINI", "Sending request to %s (payload %u bytes)", activeModel.c_str(), (unsigned)payload.length());
+  LOG_INF("GEMINI", "Sending request to %s (payload %u bytes, depth %d)", activeModel.c_str(),
+          (unsigned)payload.length(), depth);
 
   int httpCode = -1;
   std::string responseBody;
@@ -181,15 +183,32 @@ Response Client::query(const std::string& prompt, const std::vector<Message>& hi
   http.end();
 #endif
 
-  LOG_INF("GEMINI", "Response received: HTTP %d (%u bytes)", httpCode, (unsigned)responseBody.length());
+  LOG_INF("GEMINI", "Response received for %s: HTTP %d (%u bytes)", activeModel.c_str(), httpCode,
+          (unsigned)responseBody.length());
 
-  // If gemini-2.0-flash returned 404 (e.g. model not available in API version), try gemini-1.5-flash fallback
-  if (httpCode == 404 && activeModel != "gemini-1.5-flash") {
-    LOG_INF("GEMINI", "Model %s returned 404, falling back to gemini-1.5-flash", activeModel.c_str());
-    return query(prompt, history, token, "gemini-1.5-flash");
+  // If activeModel returned 404 (model not found), attempt fallback through supported active models
+  if (httpCode == 404 && depth == 0) {
+    static const char* kFallbacks[] = {
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-pro",
+        "gemini-2.0-flash",
+    };
+    for (const char* fb : kFallbacks) {
+      if (activeModel != fb) {
+        LOG_INF("GEMINI", "Model %s returned 404, attempting fallback to %s", activeModel.c_str(), fb);
+        Response fbRes = query(prompt, history, token, fb, depth + 1);
+        if (fbRes.success) {
+          fbRes.usedModel = fb;
+          return fbRes;
+        }
+      }
+    }
   }
 
-  return parseResponse(httpCode, responseBody);
+  res = parseResponse(httpCode, responseBody);
+  res.usedModel = activeModel;
+  return res;
 }
 
 bool Client::testConnection(const std::string& token, std::string& outError) {

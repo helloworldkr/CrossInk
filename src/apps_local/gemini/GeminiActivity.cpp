@@ -10,6 +10,7 @@
 #include "../../activities/ActivityManager.h"
 #include "../../activities/network/WifiSelectionActivity.h"
 #include "../../activities/util/KeyboardEntryActivity.h"
+#include "../../activities/util/OptionSelectionActivity.h"
 #include "../Shelf.h"
 #include "../ui/ToyboxFonts.h"
 #include "../ui/ToyboxTheme.h"
@@ -56,11 +57,15 @@ void GeminiActivity::onEnter() {
   toybox::ensureFonts(renderer);
 
   tokenInfo_ = gemini::loadToken();
+  modelName_ = gemini::loadModel();
+  if (!tokenInfo_.model.empty()) {
+    modelName_ = tokenInfo_.model;
+  }
   state_ = State::Welcome;
   renderedThinking_ = false;
   interactionsReady_ = false;
 
-  std::string info = "App entered. Token: " + (tokenInfo_.isFound ? ("Found in " + tokenInfo_.sourcePath) : "Not found in /XTData/llm_token");
+  std::string info = "App entered. Model: " + modelName_ + " Token: " + (tokenInfo_.isFound ? ("Found in " + tokenInfo_.sourcePath) : "Not found in /XTData/llm_token");
   logGemini(info);
 
   requestUpdate();
@@ -90,6 +95,11 @@ void GeminiActivity::askPrompt(const std::string& prompt) {
   if (!tokenInfo_.isFound) {
     tokenInfo_ = gemini::loadToken();
   }
+
+  errorShowWifi_ = false;
+  errorShowKey_ = false;
+  errorShowRetry_ = false;
+  errorShowModel_ = false;
 
   if (WiFi.status() != WL_CONNECTED) {
     errorTitle_ = "Wi-Fi Not Connected";
@@ -161,6 +171,86 @@ void GeminiActivity::openKeyboardForToken() {
       noticeReturnState_ = State::Welcome;
       state_ = State::Notice;
       requestUpdate();
+    }
+  });
+}
+
+void GeminiActivity::openModelSelection() {
+  std::vector<std::string> options = {
+      "gemini-2.5-flash (Default)",
+      "gemini-2.5-flash-lite",
+      "gemini-2.5-pro",
+      "gemini-2.0-flash",
+      "Custom Model...",
+  };
+  uint8_t selected = 0;
+  if (modelName_ == "gemini-2.5-flash-lite") selected = 1;
+  else if (modelName_ == "gemini-2.5-pro") selected = 2;
+  else if (modelName_ == "gemini-2.0-flash") selected = 3;
+
+  auto activity = makeUniqueNoThrow<OptionSelectionActivity>(
+      renderer, mappedInput, "GeminiModelSelect", StrId::STR_SELECT, options, selected, false, true);
+  if (!activity) return;
+
+  startActivityForResult(std::move(activity), [this](const ActivityResult& result) {
+    interactionsReady_ = false;
+    if (result.isCancelled) {
+      requestUpdate();
+      return;
+    }
+    const auto& sel = std::get<OptionSelectionResult>(result.data);
+    if (sel.index == 0) {
+      modelName_ = "gemini-2.5-flash";
+      gemini::saveModel(modelName_);
+      noticeTitle_ = "Model Selected";
+      noticeMessage_ = "Active model updated to:\ngemini-2.5-flash";
+      noticeReturnState_ = State::Welcome;
+      state_ = State::Notice;
+      requestUpdate();
+    } else if (sel.index == 1) {
+      modelName_ = "gemini-2.5-flash-lite";
+      gemini::saveModel(modelName_);
+      noticeTitle_ = "Model Selected";
+      noticeMessage_ = "Active model updated to:\ngemini-2.5-flash-lite";
+      noticeReturnState_ = State::Welcome;
+      state_ = State::Notice;
+      requestUpdate();
+    } else if (sel.index == 2) {
+      modelName_ = "gemini-2.5-pro";
+      gemini::saveModel(modelName_);
+      noticeTitle_ = "Model Selected";
+      noticeMessage_ = "Active model updated to:\ngemini-2.5-pro";
+      noticeReturnState_ = State::Welcome;
+      state_ = State::Notice;
+      requestUpdate();
+    } else if (sel.index == 3) {
+      modelName_ = "gemini-2.0-flash";
+      gemini::saveModel(modelName_);
+      noticeTitle_ = "Model Selected";
+      noticeMessage_ = "Active model updated to:\ngemini-2.0-flash";
+      noticeReturnState_ = State::Welcome;
+      state_ = State::Notice;
+      requestUpdate();
+    } else if (sel.index == 4) {
+      auto keyboard = makeUniqueNoThrow<KeyboardEntryActivity>(renderer, mappedInput, "GEMINI MODEL", modelName_, 64);
+      if (!keyboard) return;
+      startActivityForResult(std::move(keyboard), [this](const ActivityResult& kResult) {
+        interactionsReady_ = false;
+        if (kResult.isCancelled) {
+          requestUpdate();
+          return;
+        }
+        const auto& entered = std::get<KeyboardResult>(kResult.data);
+        if (!entered.text.empty()) {
+          modelName_ = entered.text;
+          gemini::saveModel(modelName_);
+          noticeTitle_ = "Model Saved";
+          noticeMessage_ = "Active model set to:\n" + modelName_;
+          noticeReturnState_ = State::Welcome;
+          state_ = State::Notice;
+          requestUpdate();
+        }
+      });
     }
   });
 }
@@ -266,12 +356,17 @@ void GeminiActivity::loop() {
   // Once the Thinking screen has visibly rendered, perform the API query
   if (state_ == State::Thinking && renderedThinking_) {
     state_ = State::Querying;
-    LOG_INF("GEMINI", "Executing query for prompt: %s", currentPrompt_.c_str());
+    LOG_INF("GEMINI", "Executing query for prompt: %s (model: %s)", currentPrompt_.c_str(), modelName_.c_str());
 
-    gemini::Response res = client_.query(currentPrompt_, history_, tokenInfo_.token);
+    gemini::Response res = client_.query(currentPrompt_, history_, tokenInfo_.token, modelName_);
 
     if (res.success) {
-      logGemini("Query succeeded for: " + currentPrompt_ + " (" + std::to_string(res.text.size()) + " chars)");
+      if (!res.usedModel.empty() && res.usedModel != modelName_) {
+        LOG_INF("GEMINI", "Auto-switched active model to: %s", res.usedModel.c_str());
+        modelName_ = res.usedModel;
+        gemini::saveModel(modelName_);
+      }
+      logGemini("Query succeeded for: " + currentPrompt_ + " (" + std::to_string(res.text.size()) + " chars) via " + modelName_);
       fullResponseText_ = res.text;
       history_.push_back({"user", currentPrompt_});
       history_.push_back({"model", res.text});
@@ -279,17 +374,21 @@ void GeminiActivity::loop() {
       fui::GfxRendererTarget target = toybox::makeTarget(renderer, toybox::readingChromeFaces());
       int contentW = target.deviceContext().width - 2 * toybox::kMargin;
       int totalLines = geminiui::calculateTotalLines(target, static_cast<int16_t>(contentW), res.text);
-      int16_t lh = target.lineHeight(toybox::kBodyFont);
-      int bodyH = target.deviceContext().height - 210 - 48;
-      linesPerPage_ = (lh > 0) ? (bodyH / lh) : 25;
-      totalPages_ = (totalLines + linesPerPage_ - 1) / linesPerPage_;
-      if (totalPages_ < 1) totalPages_ = 1;
+      linesPerPage_ = geminiui::responseLinesPerPage(target, target.deviceContext());
+      totalPages_ = geminiui::calculateTotalPages(totalLines, linesPerPage_);
       currentPage_ = 0;
       savedToNotes_ = false;
       state_ = State::Response;
     } else {
-      errorTitle_ = "Gemini API Error";
-      errorMessage_ = res.error;
+      if (res.httpCode == 404 || res.error.find("not found") != std::string::npos || res.error.find("models/") != std::string::npos) {
+        errorTitle_ = "Model Not Found (404)";
+        errorMessage_ = "Model '" + modelName_ + "' is not supported or not found. Tap CHANGE MODEL to pick an active model (e.g. gemini-2.5-flash or gemini-2.5-flash-lite).";
+        errorShowModel_ = true;
+      } else {
+        errorTitle_ = "Gemini API Error";
+        errorMessage_ = res.error;
+        errorShowModel_ = false;
+      }
       errorShowRetry_ = true;
       errorShowWifi_ = (WiFi.status() != WL_CONNECTED);
       errorShowKey_ = !tokenInfo_.isFound;
@@ -354,6 +453,9 @@ void GeminiActivity::loop() {
     case geminiui::ActionSetKey:
       openKeyboardForToken();
       return;
+    case geminiui::ActionSelectModel:
+      openModelSelection();
+      return;
     case geminiui::ActionConnectWifi:
       openWifiSelection();
       return;
@@ -386,7 +488,7 @@ void GeminiActivity::render(RenderLock&&) {
       model.tokenFound = tokenInfo_.isFound;
       model.tokenSource = tokenInfo_.sourcePath;
       model.maskedToken = gemini::maskToken(tokenInfo_.token);
-      model.modelName = "gemini-2.0-flash";
+      model.modelName = modelName_;
       geminiui::drawWelcome(screen, model);
       break;
     }
@@ -394,7 +496,7 @@ void GeminiActivity::render(RenderLock&&) {
     case State::Querying: {
       geminiui::ThinkingModel model;
       model.prompt = currentPrompt_;
-      model.modelName = "gemini-2.0-flash";
+      model.modelName = modelName_;
       geminiui::drawThinking(screen, model);
       renderedThinking_ = true;
       break;
@@ -406,7 +508,7 @@ void GeminiActivity::render(RenderLock&&) {
       model.currentPage = currentPage_;
       model.totalPages = totalPages_;
       model.linesPerPage = linesPerPage_;
-      model.modelName = "gemini-2.0-flash";
+      model.modelName = modelName_;
       model.savedToNotes = savedToNotes_;
       geminiui::drawResponse(screen, model);
       break;
@@ -418,6 +520,7 @@ void GeminiActivity::render(RenderLock&&) {
       model.showWifiBtn = errorShowWifi_;
       model.showKeyBtn = errorShowKey_;
       model.showRetryBtn = errorShowRetry_;
+      model.showModelBtn = errorShowModel_;
       geminiui::drawError(screen, model);
       break;
     }

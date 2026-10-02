@@ -7,8 +7,15 @@ namespace gemini {
 struct TokenInfo {
   std::string token;
   std::string sourcePath;
+  std::string model;
   bool isFound = false;
 };
+
+// Loads the configured model name from /XTData/llm_model, defaulting to "gemini-2.5-flash".
+std::string loadModel();
+
+// Saves the active model name to /XTData/llm_model.
+bool saveModel(const std::string& modelName);
 
 // Loads the Gemini API token from /XTData/llm_token or fallback paths.
 TokenInfo loadToken();

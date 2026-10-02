@@ -34,11 +34,15 @@ std::string extractToken(const std::string& raw) {
   std::string cleaned = trim(raw);
   if (cleaned.empty()) return "";
 
-  // Check if it's formatted as JSON: {"token": "...", "key": "..."}
+  // Check if it's formatted as JSON: {"token": "...", "key": "...", "model": "..."}
   if (cleaned.front() == '{' && cleaned.back() == '}') {
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, cleaned);
     if (!error) {
+      if (doc["model"].is<const char*>()) {
+        std::string m = trim(doc["model"].as<std::string>());
+        if (!m.empty()) saveModel(m);
+      }
       if (doc["token"].is<const char*>()) return trim(doc["token"].as<std::string>());
       if (doc["key"].is<const char*>()) return trim(doc["key"].as<std::string>());
       if (doc["api_key"].is<const char*>()) return trim(doc["api_key"].as<std::string>());
@@ -70,8 +74,48 @@ std::string extractToken(const std::string& raw) {
 
 }  // namespace
 
+std::string loadModel() {
+  constexpr const char* kModelPaths[] = {
+      "/XTData/llm_model",
+      "/XTData/llm_model.txt",
+      "/xtdata/llm_model",
+      "/xtdata/llm_model.txt",
+  };
+  for (const char* path : kModelPaths) {
+    if (!Storage.exists(path)) continue;
+    auto file = Storage.open(path);
+    if (!file) continue;
+    std::string content;
+    char buf[64];
+    while (file.available() > 0 && content.size() < 128) {
+      const int n = file.read(buf, sizeof(buf));
+      if (n <= 0) break;
+      content.append(buf, n);
+    }
+    file.close();
+    std::string m = trim(content);
+    if (!m.empty()) {
+      LOG_INF("GEMINI", "Loaded model %s from %s", m.c_str(), path);
+      return m;
+    }
+  }
+  return "gemini-2.5-flash";
+}
+
+bool saveModel(const std::string& modelName) {
+  std::string cleaned = trim(modelName);
+  if (cleaned.empty()) return false;
+  Storage.ensureDirectoryExists("/XTData");
+  bool saved = Storage.writeFile("/XTData/llm_model", cleaned.c_str());
+  if (saved) {
+    LOG_INF("GEMINI", "Saved active model '%s' to /XTData/llm_model", cleaned.c_str());
+  }
+  return saved;
+}
+
 TokenInfo loadToken() {
   TokenInfo info;
+  info.model = loadModel();
 
   for (const char* path : kCandidatePaths) {
     if (!Storage.exists(path)) continue;
@@ -130,3 +174,4 @@ std::string maskToken(const std::string& token) {
 }
 
 }  // namespace gemini
+

@@ -41,6 +41,7 @@ class GeminiActivity final : public Activity {
   void askPrompt(const std::string& prompt);
   void openKeyboardForPrompt(const std::string& prefill = "");
   void openKeyboardForToken();
+  void openModelSelection();
   void openWifiSelection();
   void saveResponseToNotes();
   void resetChat();
@@ -48,6 +49,7 @@ class GeminiActivity final : public Activity {
   State state_ = State::Welcome;
   gemini::TokenInfo tokenInfo_;
   gemini::Client client_;
+  std::string modelName_ = "gemini-2.5-flash";
 
   std::vector<gemini::Message> history_;
   std::string currentPrompt_;
@@ -64,6 +66,7 @@ class GeminiActivity final : public Activity {
   bool errorShowWifi_ = false;
   bool errorShowKey_ = false;
   bool errorShowRetry_ = false;
+  bool errorShowModel_ = false;
 
   std::string noticeTitle_;
   std::string noticeMessage_;
