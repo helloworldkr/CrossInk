@@ -2291,10 +2291,6 @@ void EpubReaderActivity::onExit() {
   // Deactivate reader-specific front button mapping.
   mappedInput.setReaderMode(false);
 
-  if (footnoteDepth == 0 && !flushQueuedProgress()) {
-    LOG_ERR("ERS", "Failed to flush debounced reader progress on exit");
-  }
-
   // Reset orientation back to portrait for the rest of the UI
   renderer.setOrientation(GfxRenderer::Orientation::Portrait);
 
@@ -2332,12 +2328,15 @@ void EpubReaderActivity::onExit() {
     globalStats.save();
   }
 
-  // Leaving mid-footnote loses the in-RAM return stack on deep sleep; persist the
-  // pre-footnote position so the book reopens at the link origin, not the footnote.
-  if (footnoteDepth > 0 && epub) {
+  // Leaving mid-footnote preview loses the in-RAM return stack on deep sleep; persist the
+  // pre-footnote position so the book reopens at the link origin, not the footnote preview.
+  // In normal reading mode, flush the user's actual reading progress.
+  if (activeFootnotePreview && footnoteDepth > 0 && epub) {
     if (!saveFootnoteOriginProgress()) {
       LOG_ERR("ERS", "Failed to save footnote origin on exit");
     }
+  } else if (!flushQueuedProgress()) {
+    LOG_ERR("ERS", "Failed to flush debounced reader progress on exit");
   }
 
   BOOKMARKS.unload();
@@ -3876,7 +3875,9 @@ void EpubReaderActivity::onReaderMenuConfirm(EpubReaderMenuActivity::MenuAction 
         // Persist current position so the reader resumes at the right page on return.
         // goToReader() depends on this file, so abort the sync if the write fails.
         const bool saved =
-            footnoteDepth > 0 ? saveFootnoteOriginProgress() : saveProgress(currentSpineIndex, currentPage, totalPages);
+            (activeFootnotePreview && footnoteDepth > 0)
+                ? saveFootnoteOriginProgress()
+                : saveProgress(currentSpineIndex, currentPage, totalPages);
         if (!saved) {
           LOG_ERR("KOSync", "Aborting sync because current progress could not be saved");
           pendingSyncSaveError = true;
@@ -5486,6 +5487,9 @@ void EpubReaderActivity::pageTurn(bool isForwardTurn, const char* source) {
     return;
   }
   if (isForwardTurn) {
+    if (!activeFootnotePreview && footnoteDepth > 0) {
+      footnoteDepth = 0;
+    }
     uint32_t forwardReadSeconds = 0;
     const bool shouldRecordForwardRead = forwardPageReadElapsed(forwardReadSeconds, source);
     recordCurrentPageReadingTime(source);
@@ -7639,12 +7643,12 @@ void EpubReaderActivity::navigateToHref(const std::string& hrefStr, const bool s
   // be tapped. A destination declared in the book TOC is a chapter jump,
   // though: it must replace the current chapter instead of opening a preview.
   const bool chapterDestination = isTocChapterDestination(targetSpineIndex, anchor);
-  // A link clicked in a contents document is a chapter jump, not a footnote.
-  // Serialize its source scan with rendering: real SD cards allow only one
-  // reader, and ZIP inflation borrows the framebuffer's storage.
+  // A link clicked in a contents document or pointing to a TOC chapter is a chapter
+  // jump, not a footnote. Serialize its source scan with rendering: real SD cards
+  // allow only one reader, and ZIP inflation borrows the framebuffer's storage.
   bool sourceScanSucceeded = true;
   bool contentsNavigation = false;
-  if (chapterDestination) {
+  {
     RenderLock lock(*this);
     GfxRenderer::FrameBufferLoan loan(renderer);
     contentsNavigation = epub->isNavigationDocumentSpine(currentSpineIndex, &sourceScanSucceeded);
@@ -7652,9 +7656,10 @@ void EpubReaderActivity::navigateToHref(const std::string& hrefStr, const bool s
   if (!sourceScanSucceeded) {
     LOG_ERR("ERS", "Could not inspect contents source for link: %s", hrefStr.c_str());
   }
-  // Keep the return stack for an endnote that happens to point at a TOC
-  // chapter.
-  const bool saveReturnPosition = savePosition && !contentsNavigation;
+
+  // Never save return position for chapter destinations or when navigating from a TOC.
+  // Those are forward book navigations, not temporary footnote lookups.
+  const bool saveReturnPosition = savePosition && !chapterDestination && !contentsNavigation;
   if (saveReturnPosition && section && footnoteDepth < MAX_FOOTNOTE_DEPTH) {
     savedPositions[footnoteDepth] = {currentSpineIndex, section->currentPage};
     footnoteDepth++;

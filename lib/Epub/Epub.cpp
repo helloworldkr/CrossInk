@@ -449,7 +449,7 @@ class ContentsDocumentScanner final : public Print {
     if (closing) name++;
     const bool title = std::strncmp(name, "title", 5) == 0 && (name[5] == '\0' || std::isspace(name[5]));
     const bool heading =
-        name[0] == 'h' && (name[1] == '1' || name[1] == '2') && (name[2] == '\0' || std::isspace(name[2]));
+        name[0] == 'h' && (name[1] == '1' || name[1] == '2' || name[1] == '3') && (name[2] == '\0' || std::isspace(name[2]));
 
     if (!closing && (std::strstr(name, "doc-toc") || hasTocTypeAttribute(name))) {
       contentsDocument = true;
@@ -459,7 +459,9 @@ class ContentsDocumentScanner final : public Print {
       clearLabel();
     } else if (closing && (title || heading)) {
       while (labelLength > 0 && label[labelLength - 1] == ' ') label[--labelLength] = '\0';
-      if (std::strcmp(label, "contents") == 0 || std::strcmp(label, "table of contents") == 0) {
+      if (std::strstr(label, "contents") != nullptr || std::strstr(label, "inhaltsverzeichnis") != nullptr ||
+          std::strstr(label, "table des matieres") != nullptr || std::strstr(label, "sommaire") != nullptr ||
+          std::strstr(label, "indice") != nullptr || std::strstr(label, "inhalt") != nullptr) {
         contentsDocument = true;
       }
       collectingLabel = false;
@@ -2054,6 +2056,17 @@ bool Epub::isNavigationDocumentSpine(const int spineIndex, bool* const scanSucce
   }
   const std::string& href = getSpineItem(spineIndex).href;
   if (href == tocNavItem || href == tocGuideItem) {
+    if (scanSucceeded) *scanSucceeded = true;
+    return true;
+  }
+
+  // Check common filename conventions for TOC / navigation documents
+  std::string lowerHref = href;
+  std::transform(lowerHref.begin(), lowerHref.end(), lowerHref.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  if (lowerHref.find("toc.") != std::string::npos || lowerHref.find("toc_") != std::string::npos ||
+      lowerHref.find("contents.") != std::string::npos || lowerHref.find("nav.") != std::string::npos ||
+      lowerHref.find("table-of-contents") != std::string::npos || lowerHref.find("table_of_contents") != std::string::npos) {
     if (scanSucceeded) *scanSucceeded = true;
     return true;
   }

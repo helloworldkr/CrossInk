@@ -15,6 +15,7 @@
 - Go to % and Go to Stable Page use a numeric keypad for typing an exact destination, including decimal percentages. Touch devices use the keypad exclusively; button-only devices keep the slider by default and hold Confirm/Select to switch to the keypad.
 - Files can be renamed from the File Browser action menu while keeping reading progress, bookmarks, clippings, and recent-book entries linked to the new name.
 - Firmware builds can include only selected UI languages to reduce flash usage while preserving English fallback.
+- **Dark Mode Schedule**: Automatically turn on dark mode at night and return to normal mode in the morning with configurable Start and End times under Settings > Display > Dark Mode Schedule (on devices with an RTC). Supports wake application and runtime transitions while reading.
 
 ### Changed
 
@@ -32,6 +33,7 @@
 
 ### Fixed
 
+- **EPUB Progress Preservation**: Fixed reading progress being incorrectly rewound to the Table of Contents or initial link origin when closing an EPUB or putting the device to sleep after navigating via in-book or chapter links.
 - The web EPUB optimizer now accepts books that use standard Adobe or IDPF font obfuscation, while leaving DRM-protected books unchanged.
 - Frontlight schedule time pickers now use the compact number keypad from Go To screens.
 - X4 Classic's left/right tilt direction labels now match the physical page-turn direction.
