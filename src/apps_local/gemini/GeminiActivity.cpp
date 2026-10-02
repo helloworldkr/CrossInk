@@ -31,6 +31,17 @@ std::string sanitizeFilename(const std::string& name) {
   return out.empty() ? "Note" : out;
 }
 
+void logGemini(const std::string& msg) {
+  LOG_INF("GEMINI", "%s", msg.c_str());
+  Storage.ensureDirectoryExists("/XTData");
+  auto file = Storage.open("/XTData/gemini.log", O_WRITE | O_CREAT | O_APPEND);
+  if (file) {
+    std::string line = msg + "\n";
+    file.write(line.c_str(), line.length());
+    file.close();
+  }
+}
+
 }  // namespace
 
 GeminiActivity::GeminiActivity(GfxRenderer& renderer, MappedInputManager& mappedInput)
@@ -48,6 +59,9 @@ void GeminiActivity::onEnter() {
   state_ = State::Welcome;
   renderedThinking_ = false;
   interactionsReady_ = false;
+
+  std::string info = "App entered. Token: " + (tokenInfo_.isFound ? ("Found in " + tokenInfo_.sourcePath) : "Not found in /XTData/llm_token");
+  logGemini(info);
 
   requestUpdate();
 }
@@ -85,6 +99,7 @@ void GeminiActivity::askPrompt(const std::string& prompt) {
     errorShowRetry_ = false;
     state_ = State::Error;
     interactionsReady_ = false;
+    logGemini("Error: Wi-Fi not connected when asking: " + prompt);
     requestUpdate();
     return;
   }
@@ -97,6 +112,7 @@ void GeminiActivity::askPrompt(const std::string& prompt) {
     errorShowRetry_ = false;
     state_ = State::Error;
     interactionsReady_ = false;
+    logGemini("Error: API Key missing when asking: " + prompt);
     requestUpdate();
     return;
   }
@@ -255,6 +271,7 @@ void GeminiActivity::loop() {
     gemini::Response res = client_.query(currentPrompt_, history_, tokenInfo_.token);
 
     if (res.success) {
+      logGemini("Query succeeded for: " + currentPrompt_ + " (" + std::to_string(res.text.size()) + " chars)");
       fullResponseText_ = res.text;
       history_.push_back({"user", currentPrompt_});
       history_.push_back({"model", res.text});
@@ -277,6 +294,7 @@ void GeminiActivity::loop() {
       errorShowWifi_ = (WiFi.status() != WL_CONNECTED);
       errorShowKey_ = !tokenInfo_.isFound;
       state_ = State::Error;
+      logGemini("Query error for '" + currentPrompt_ + "': " + res.error);
     }
     interactionsReady_ = false;
     requestUpdate();
@@ -411,4 +429,5 @@ void GeminiActivity::render(RenderLock&&) {
 
   interactionsReady_ = true;
   toybox::reportOverflow(interactions_, "Gemini");
+  renderer.displayBuffer();
 }
