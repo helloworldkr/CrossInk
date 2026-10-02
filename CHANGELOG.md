@@ -2,6 +2,7 @@
 
 ### Added
 
+- **Gemini AI Assistant**: Ask questions, explain concepts, and brainstorm directly on your e-reader using Google Gemini (`gemini-2.5-flash` / `gemini-2.0-flash`) over Wi-Fi. Automatically loads your API key from `/XTData/llm_token` on the SD card, supports long response pagination, and exports any answer into the Notes app with a single tap.
 - **Notes**: Create, view, and edit markdown notes and task checklists with the on-screen touch keyboard or via live phone typing over local Wi-Fi (`/n`); supports pinning any note as the sleep screen.
 - **Notes Item Editing**: Tap any line in a note or checklist to open an action sheet to edit text, delete the line directly, or toggle completion.
 - **Study (Anki Decks)**: Review flashcard decks with the FSRS spaced repetition scheduler, card flipping, quality ratings (Again/Hard/Good/Easy), Cloze deletions, embedded illustrations, review statistics, and Python CLI tools (`tools_local/study/`) to convert Anki `.apkg` collections.
