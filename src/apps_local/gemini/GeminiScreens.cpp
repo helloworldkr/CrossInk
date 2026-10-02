@@ -23,7 +23,7 @@ fui::TextStyle style(const fui::FontId font, const fui::TextAlign align = fui::T
 
 void chrome(toybox::Screen& screen, const char* title, const char* rightLabel = nullptr) {
   fui::TextStyle titleStyle = screen.theme().titleText;
-  titleStyle.font = toybox::kDisplayFontId;
+  titleStyle.font = toybox::kDisplayFont;
   fui::HeaderProps header;
   header.title = title;
   header.titleText = titleStyle;
@@ -31,7 +31,7 @@ void chrome(toybox::Screen& screen, const char* title, const char* rightLabel = 
   header.borderEdges = fui::EdgesNone;
   if (rightLabel != nullptr) {
     header.subtitleText = screen.theme().smallText;
-    header.subtitleText.font = toybox::kTileFontId;
+    header.subtitleText.font = toybox::kTileFont;
     header.subtitleText.color = fui::Color::White;
     header.subtitleText.align = fui::TextAlign::Right;
   }
@@ -61,12 +61,12 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
   const fui::Rect statusBox = screen.takeTop(150, 16);
   cardBox(screen, statusBox);
 
-  fui::TextStyle headerStyle = style(toybox::kSerifTitleFontId, fui::TextAlign::Left);
+  fui::TextStyle headerStyle = style(toybox::kDisplayFont, fui::TextAlign::Left);
   screen.target().text(fui::makeRect(statusBox.x + 16, statusBox.y + 14, statusBox.width - 32, 24),
                        "Google Gemini Assistant", headerStyle);
 
   // Wi-Fi line
-  fui::TextStyle bodyStyle = style(toybox::kReadingFontId, fui::TextAlign::Left);
+  fui::TextStyle bodyStyle = style(toybox::kBodyFont, fui::TextAlign::Left);
   std::string wifiStr = model.wifiConnected ? ("Wi-Fi: Connected (" + model.wifiSsid + ")") : "Wi-Fi: Disconnected";
   screen.target().text(fui::makeRect(statusBox.x + 16, statusBox.y + 48, statusBox.width - 32, 22), wifiStr.c_str(),
                        bodyStyle);
@@ -82,7 +82,7 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
                        bodyStyle);
 
   // Hint line
-  fui::TextStyle hintStyle = style(toybox::kTileFontId, fui::TextAlign::Left);
+  fui::TextStyle hintStyle = style(toybox::kSmallFont, fui::TextAlign::Left);
   std::string hintStr = model.tokenFound ? "Ready to answer questions, explain concepts & summarize."
                                          : "Place API key in /XTData/llm_token or tap Enter Key.";
   screen.target().text(fui::makeRect(statusBox.x + 16, statusBox.y + 104, statusBox.width - 32, 20), hintStr.c_str(),
@@ -90,7 +90,7 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
 
   // Quick prompt suggestions
   screen.takeTop(8);
-  fui::TextStyle sectionTitle = style(toybox::kReadingBoldFontId, fui::TextAlign::Left);
+  fui::TextStyle sectionTitle = style(toybox::kBodyFont, fui::TextAlign::Left);
   const fui::Rect secBox = screen.takeTop(26, 8);
   screen.target().text(secBox, "QUICK PROMPTS", sectionTitle);
 
@@ -160,10 +160,10 @@ void drawThinking(toybox::Screen& screen, const ThinkingModel& model) {
   const fui::Rect promptBox = screen.takeTop(100, 24);
   cardBox(screen, promptBox);
 
-  fui::TextStyle qTag = style(toybox::kReadingBoldFontId, fui::TextAlign::Left);
+  fui::TextStyle qTag = style(toybox::kSmallFont, fui::TextAlign::Left);
   screen.target().text(fui::makeRect(promptBox.x + 14, promptBox.y + 10, promptBox.width - 28, 22), "PROMPT:", qTag);
 
-  fui::TextStyle promptStyle = style(toybox::kReadingFontId, fui::TextAlign::Left, fui::Color::Black, 3);
+  fui::TextStyle promptStyle = style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 3);
   screen.target().text(fui::makeRect(promptBox.x + 14, promptBox.y + 34, promptBox.width - 28, 56),
                        model.prompt.c_str(), promptStyle);
 
@@ -172,15 +172,15 @@ void drawThinking(toybox::Screen& screen, const ThinkingModel& model) {
   const fui::Rect thinkBox = screen.takeTop(160, 20);
   cardBox(screen, thinkBox);
 
-  fui::TextStyle thinkTitle = style(toybox::kSerifTitleFontId, fui::TextAlign::Center);
+  fui::TextStyle thinkTitle = style(toybox::kDisplayFont, fui::TextAlign::Center);
   screen.target().text(fui::makeRect(thinkBox.x + 16, thinkBox.y + 36, thinkBox.width - 32, 28),
                        "Thinking...", thinkTitle);
 
-  fui::TextStyle thinkSub = style(toybox::kReadingFontId, fui::TextAlign::Center);
+  fui::TextStyle thinkSub = style(toybox::kBodyFont, fui::TextAlign::Center);
   screen.target().text(fui::makeRect(thinkBox.x + 16, thinkBox.y + 74, thinkBox.width - 32, 24),
                        "Querying Google Gemini API over Wi-Fi...", thinkSub);
 
-  fui::TextStyle modelSub = style(toybox::kTileFontId, fui::TextAlign::Center);
+  fui::TextStyle modelSub = style(toybox::kSmallFont, fui::TextAlign::Center);
   std::string modelStr = "Model: " + model.modelName;
   screen.target().text(fui::makeRect(thinkBox.x + 16, thinkBox.y + 106, thinkBox.width - 32, 20), modelStr.c_str(),
                        modelSub);
@@ -188,7 +188,11 @@ void drawThinking(toybox::Screen& screen, const ThinkingModel& model) {
 
 void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
   char pageBuf[32];
-  snprintf(pageBuf, sizeof(pageBuf), "Page %d/%d", model.currentPage + 1, model.totalPages);
+  if (model.totalPages > 1) {
+    snprintf(pageBuf, sizeof(pageBuf), "Page %d/%d", model.currentPage + 1, model.totalPages);
+  } else {
+    snprintf(pageBuf, sizeof(pageBuf), "%s", model.modelName.c_str());
+  }
   chrome(screen, "GEMINI", pageBuf);
 
   const fui::DeviceContext& device = screen.device();
@@ -197,42 +201,64 @@ void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
   // Prompt banner at top (compact)
   const fui::Rect promptBanner = screen.takeTop(50, 10);
   screen.target().fill(promptBanner, fui::Paint::solid(fui::Color::Black));
-  fui::TextStyle pStyle = style(toybox::kReadingBoldFontId, fui::TextAlign::Left, fui::Color::White);
+  fui::TextStyle pStyle = style(toybox::kSmallFont, fui::TextAlign::Left, fui::Color::White);
   std::string qText = "Q: " + model.prompt;
   screen.target().text(fui::makeRect(promptBanner.x + 10, promptBanner.y + 14, promptBanner.width - 20, 24),
                        qText.c_str(), pStyle);
 
+  // Determine available body height
+  const int footerH = (model.totalPages > 1) ? 96 : 48;
+  const int bodyH = device.height - 210 - (model.totalPages > 1 ? 48 : 0);
+
   // Response text area
-  const int bodyH = device.height - 210;
   fui::TextAreaProps area;
   area.text = model.responseText.c_str();
-  area.style = style(toybox::kReadingFontId, fui::TextAlign::Left, fui::Color::Black, 35);
+  area.style = style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 0);
+  area.topLine = static_cast<uint32_t>(model.currentPage * model.linesPerPage);
+  area.showCaret = false;
   screen.textArea(area, static_cast<int16_t>(bodyH));
 
-  // Footer button rows
-  const fui::Rect footerBox = screen.takeTop(48, 0);
-
+  // Footer buttons
   if (model.totalPages > 1) {
+    // Upper row: Save Note & New Chat
+    const fui::Rect subFooter = screen.takeTop(42, 6);
+    const int subW = (contentW - 8) / 2;
+
+    fui::ButtonProps saveBtn;
+    saveBtn.label = model.savedToNotes ? "SAVED TO NOTES ✓" : "SAVE NOTE";
+    saveBtn.action = ActionSaveNote;
+    saveBtn.styles = toybox::rowStyles();
+    screen.button(saveBtn, fui::makeRect(subFooter.x, subFooter.y, subW, subFooter.height));
+
+    fui::ButtonProps newBtn;
+    newBtn.label = "NEW CHAT";
+    newBtn.action = ActionNewChat;
+    newBtn.styles = toybox::rowStyles();
+    screen.button(newBtn, fui::makeRect(subFooter.x + subW + 8, subFooter.y, subW, subFooter.height));
+
+    // Lower row: Navigation
+    const fui::Rect navFooter = screen.takeTop(46, 0);
     const int btnW = (contentW - 16) / 3;
 
     fui::ButtonProps prevBtn;
     prevBtn.label = "< PREV";
     prevBtn.action = ActionPrevPage;
     prevBtn.styles = (model.currentPage > 0) ? toybox::rowStyles() : toybox::disabledButtonStyles();
-    screen.button(prevBtn, fui::makeRect(footerBox.x, footerBox.y, btnW, footerBox.height));
+    screen.button(prevBtn, fui::makeRect(navFooter.x, navFooter.y, btnW, navFooter.height));
 
     fui::ButtonProps askBtn;
     askBtn.label = "ASK NEXT";
     askBtn.action = ActionAsk;
     askBtn.styles = toybox::invertedStyles();
-    screen.button(askBtn, fui::makeRect(footerBox.x + btnW + 8, footerBox.y, btnW, footerBox.height));
+    screen.button(askBtn, fui::makeRect(navFooter.x + btnW + 8, navFooter.y, btnW, navFooter.height));
 
     fui::ButtonProps nextBtn;
     nextBtn.label = "NEXT >";
     nextBtn.action = ActionNextPage;
     nextBtn.styles = (model.currentPage < model.totalPages - 1) ? toybox::rowStyles() : toybox::disabledButtonStyles();
-    screen.button(nextBtn, fui::makeRect(footerBox.x + (btnW + 8) * 2, footerBox.y, btnW, footerBox.height));
+    screen.button(nextBtn, fui::makeRect(navFooter.x + (btnW + 8) * 2, navFooter.y, btnW, navFooter.height));
   } else {
+    const fui::Rect footerBox = screen.takeTop(48, 0);
     const int btnW = (contentW - 16) / 3;
 
     fui::ButtonProps askBtn;
@@ -261,11 +287,11 @@ void drawError(toybox::Screen& screen, const ErrorModel& model) {
   const fui::Rect errBox = screen.takeTop(180, 20);
   cardBox(screen, errBox);
 
-  fui::TextStyle titleStyle = style(toybox::kSerifTitleFontId, fui::TextAlign::Left);
+  fui::TextStyle titleStyle = style(toybox::kDisplayFont, fui::TextAlign::Left);
   screen.target().text(fui::makeRect(errBox.x + 16, errBox.y + 16, errBox.width - 32, 26), model.title.c_str(),
                        titleStyle);
 
-  fui::TextStyle msgStyle = style(toybox::kReadingFontId, fui::TextAlign::Left, fui::Color::Black, 5);
+  fui::TextStyle msgStyle = style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 5);
   screen.target().text(fui::makeRect(errBox.x + 16, errBox.y + 50, errBox.width - 32, 110), model.message.c_str(),
                        msgStyle);
 
@@ -312,10 +338,10 @@ void drawNotice(toybox::Screen& screen, const char* title, const char* message) 
   const fui::Rect box = screen.takeTop(160, 20);
   cardBox(screen, box);
 
-  fui::TextStyle titleStyle = style(toybox::kSerifTitleFontId, fui::TextAlign::Left);
+  fui::TextStyle titleStyle = style(toybox::kDisplayFont, fui::TextAlign::Left);
   screen.target().text(fui::makeRect(box.x + 16, box.y + 16, box.width - 32, 26), title, titleStyle);
 
-  fui::TextStyle msgStyle = style(toybox::kReadingFontId, fui::TextAlign::Left, fui::Color::Black, 4);
+  fui::TextStyle msgStyle = style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 4);
   screen.target().text(fui::makeRect(box.x + 16, box.y + 50, box.width - 32, 90), message, msgStyle);
 
   screen.takeTop(20);
@@ -327,52 +353,11 @@ void drawNotice(toybox::Screen& screen, const char* title, const char* message) 
   screen.button(okBtn, okBox);
 }
 
-std::vector<std::string> paginateResponse(const fui::DeviceContext& /*device*/, const std::string& text,
-                                          int /*availableHeight*/) {
-  std::vector<std::string> pages;
-  if (text.empty()) {
-    pages.push_back("");
-    return pages;
-  }
-
-  // Roughly ~1000 characters per page for comfortable reading with 14px font
-  constexpr size_t kPageChars = 1000;
-
-  size_t cursor = 0;
-  while (cursor < text.size()) {
-    if (text.size() - cursor <= kPageChars) {
-      pages.push_back(text.substr(cursor));
-      break;
-    }
-
-    // Try to find a paragraph break (\n\n) near kPageChars
-    size_t splitPoint = cursor + kPageChars;
-    size_t searchStart = (splitPoint > 250) ? (splitPoint - 250) : cursor;
-    size_t searchEnd = std::min(text.size(), splitPoint + 150);
-
-    size_t para = text.rfind("\n\n", searchEnd);
-    if (para != std::string::npos && para >= searchStart) {
-      splitPoint = para + 2;
-    } else {
-      // Look for a sentence boundary (. )
-      size_t sentence = text.rfind(". ", searchEnd);
-      if (sentence != std::string::npos && sentence >= searchStart) {
-        splitPoint = sentence + 2;
-      } else {
-        // Look for a newline or space
-        size_t space = text.rfind(' ', searchEnd);
-        if (space != std::string::npos && space >= searchStart) {
-          splitPoint = space + 1;
-        }
-      }
-    }
-
-    if (splitPoint <= cursor) splitPoint = cursor + kPageChars;
-    pages.push_back(text.substr(cursor, splitPoint - cursor));
-    cursor = splitPoint;
-  }
-
-  return pages;
+int calculateTotalLines(const fui::DrawTarget& target, int16_t width, const std::string& text) {
+  if (text.empty() || width <= 0) return 0;
+  fui::TextStyle st = style(toybox::kBodyFont, fui::TextAlign::Left);
+  fui::TextAreaMetrics m = fui::textAreaMeasure(target, width, text.c_str(), st, 0);
+  return static_cast<int>(m.lineCount);
 }
 
 }  // namespace geminiui

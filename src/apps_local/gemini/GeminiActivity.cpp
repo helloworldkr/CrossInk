@@ -46,8 +46,7 @@ void GeminiActivity::onEnter() {
 
   tokenInfo_ = gemini::loadToken();
   state_ = State::Welcome;
-  queryPending_ = false;
-  queryInFlight_ = false;
+  renderedThinking_ = false;
   interactionsReady_ = false;
 
   requestUpdate();
@@ -55,16 +54,15 @@ void GeminiActivity::onEnter() {
 
 void GeminiActivity::onExit() {
   Activity::onExit();
-  queryPending_ = false;
-  queryInFlight_ = false;
+  renderedThinking_ = false;
 }
 
 void GeminiActivity::resetChat() {
   history_.clear();
   currentPrompt_.clear();
   fullResponseText_.clear();
-  pages_.clear();
   currentPage_ = 0;
+  totalPages_ = 1;
   savedToNotes_ = false;
   state_ = State::Welcome;
   interactionsReady_ = false;
@@ -105,8 +103,7 @@ void GeminiActivity::askPrompt(const std::string& prompt) {
 
   currentPrompt_ = prompt;
   state_ = State::Thinking;
-  queryPending_ = true;
-  queryInFlight_ = false;
+  renderedThinking_ = false;
   interactionsReady_ = false;
   requestUpdate();
 }
@@ -173,9 +170,9 @@ void GeminiActivity::saveResponseToNotes() {
 
   std::string sanitized = sanitizeFilename(currentPrompt_);
   std::string path = "/notes/Gemini - " + sanitized + ".md";
+  std::string content = "# " + currentPrompt_ + "\n\n" + fullResponseText_ + "\n";
 
-  auto file = Storage.open(path.c_str(), O_WRITE | O_CREAT | O_TRUNC);
-  if (!file) {
+  if (!Storage.writeFile(path.c_str(), content.c_str())) {
     noticeTitle_ = "Save Failed";
     noticeMessage_ = "Could not write note file to SD card.";
     noticeReturnState_ = State::Response;
@@ -184,10 +181,6 @@ void GeminiActivity::saveResponseToNotes() {
     requestUpdate();
     return;
   }
-
-  std::string content = "# " + currentPrompt_ + "\n\n" + fullResponseText_ + "\n";
-  file.write(content.c_str(), content.length());
-  file.close();
 
   savedToNotes_ = true;
   noticeTitle_ = "Saved to Notes";
@@ -217,9 +210,9 @@ void GeminiActivity::loop() {
         requestUpdate();
         return;
       case State::Thinking:
-        queryPending_ = false;
-        queryInFlight_ = false;
+      case State::Querying:
         state_ = State::Welcome;
+        renderedThinking_ = false;
         interactionsReady_ = false;
         requestUpdate();
         return;
@@ -231,7 +224,7 @@ void GeminiActivity::loop() {
   const bool up = mappedInput.wasReleased(MappedInputManager::Button::Up);
   if (down || up) {
     if (state_ == State::Response) {
-      if (down && currentPage_ + 1 < static_cast<int>(pages_.size())) {
+      if (down && currentPage_ + 1 < totalPages_) {
         currentPage_++;
         interactionsReady_ = false;
         requestUpdate();
@@ -248,33 +241,32 @@ void GeminiActivity::loop() {
 
   // Confirm key
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
-    if (state_ == State::Welcome) {
-      openKeyboardForPrompt();
-      return;
-    }
-    if (state_ == State::Response) {
+    if (state_ == State::Welcome || state_ == State::Response) {
       openKeyboardForPrompt();
       return;
     }
   }
 
-  // If query is queued and ready to execute
-  if (queryPending_ && !queryInFlight_) {
-    queryInFlight_ = true;
+  // Once the Thinking screen has visibly rendered, perform the API query
+  if (state_ == State::Thinking && renderedThinking_) {
+    state_ = State::Querying;
     LOG_INF("GEMINI", "Executing query for prompt: %s", currentPrompt_.c_str());
 
     gemini::Response res = client_.query(currentPrompt_, history_, tokenInfo_.token);
-
-    queryInFlight_ = false;
-    queryPending_ = false;
 
     if (res.success) {
       fullResponseText_ = res.text;
       history_.push_back({"user", currentPrompt_});
       history_.push_back({"model", res.text});
 
-      fui::GfxRendererTarget target = toybox::makeTarget(renderer);
-      pages_ = geminiui::paginateResponse(target.deviceContext(), res.text, target.deviceContext().height - 210);
+      fui::GfxRendererTarget target = toybox::makeTarget(renderer, toybox::readingChromeFaces());
+      int contentW = target.deviceContext().width - 2 * toybox::kMargin;
+      int totalLines = geminiui::calculateTotalLines(target, static_cast<int16_t>(contentW), res.text);
+      int16_t lh = target.lineHeight(toybox::kBodyFont);
+      int bodyH = target.deviceContext().height - 210 - 48;
+      linesPerPage_ = (lh > 0) ? (bodyH / lh) : 25;
+      totalPages_ = (totalLines + linesPerPage_ - 1) / linesPerPage_;
+      if (totalPages_ < 1) totalPages_ = 1;
       currentPage_ = 0;
       savedToNotes_ = false;
       state_ = State::Response;
@@ -332,7 +324,7 @@ void GeminiActivity::loop() {
       }
       return;
     case geminiui::ActionNextPage:
-      if (currentPage_ + 1 < static_cast<int>(pages_.size())) {
+      if (currentPage_ + 1 < totalPages_) {
         currentPage_++;
         interactionsReady_ = false;
         requestUpdate();
@@ -362,7 +354,7 @@ void GeminiActivity::loop() {
 
 void GeminiActivity::render(RenderLock&&) {
   renderer.clearScreen();
-  fui::GfxRendererTarget target = toybox::makeTarget(renderer);
+  fui::GfxRendererTarget target = toybox::makeTarget(renderer, toybox::readingChromeFaces());
   const fui::InputSnapshot noInput{};
   interactionsReady_ = false;
   toybox::Frame frame(target, target.deviceContext(), noInput, interactions_);
@@ -376,24 +368,27 @@ void GeminiActivity::render(RenderLock&&) {
       model.tokenFound = tokenInfo_.isFound;
       model.tokenSource = tokenInfo_.sourcePath;
       model.maskedToken = gemini::maskToken(tokenInfo_.token);
-      model.modelName = "gemini-2.5-flash";
+      model.modelName = "gemini-2.0-flash";
       geminiui::drawWelcome(screen, model);
       break;
     }
-    case State::Thinking: {
+    case State::Thinking:
+    case State::Querying: {
       geminiui::ThinkingModel model;
       model.prompt = currentPrompt_;
-      model.modelName = "gemini-2.5-flash";
+      model.modelName = "gemini-2.0-flash";
       geminiui::drawThinking(screen, model);
+      renderedThinking_ = true;
       break;
     }
     case State::Response: {
       geminiui::ResponseModel model;
       model.prompt = currentPrompt_;
-      model.responseText = pages_.empty() ? "" : pages_[static_cast<size_t>(currentPage_)];
+      model.responseText = fullResponseText_;
       model.currentPage = currentPage_;
-      model.totalPages = static_cast<int>(pages_.size());
-      model.modelName = "gemini-2.5-flash";
+      model.totalPages = totalPages_;
+      model.linesPerPage = linesPerPage_;
+      model.modelName = "gemini-2.0-flash";
       model.savedToNotes = savedToNotes_;
       geminiui::drawResponse(screen, model);
       break;

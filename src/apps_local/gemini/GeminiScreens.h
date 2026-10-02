@@ -29,12 +29,12 @@ struct WelcomeModel {
   bool tokenFound = false;
   std::string tokenSource;
   std::string maskedToken;
-  std::string modelName = "gemini-2.5-flash";
+  std::string modelName = "gemini-2.0-flash";
 };
 
 struct ThinkingModel {
   std::string prompt;
-  std::string modelName = "gemini-2.5-flash";
+  std::string modelName = "gemini-2.0-flash";
 };
 
 struct ResponseModel {
@@ -42,7 +42,8 @@ struct ResponseModel {
   std::string responseText;
   int currentPage = 0;
   int totalPages = 1;
-  std::string modelName = "gemini-2.5-flash";
+  int linesPerPage = 25;
+  std::string modelName = "gemini-2.0-flash";
   bool savedToNotes = false;
 };
 
@@ -61,8 +62,7 @@ void drawResponse(toybox::Screen& screen, const ResponseModel& model);
 void drawError(toybox::Screen& screen, const ErrorModel& model);
 void drawNotice(toybox::Screen& screen, const char* title, const char* message);
 
-// Calculate page splits for long response text
-std::vector<std::string> paginateResponse(const fui::DeviceContext& device, const std::string& text,
-                                          int availableHeight);
+// Calculate total lines and pages using exact DrawTarget text metrics
+int calculateTotalLines(const fui::DrawTarget& target, int16_t width, const std::string& text);
 
 }  // namespace geminiui

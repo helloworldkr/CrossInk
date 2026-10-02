@@ -112,22 +112,13 @@ bool saveToken(const std::string& token) {
   Storage.ensureDirectoryExists("/XTData");
 
   // Save to /XTData/llm_token
-  bool saved = false;
-  auto xtFile = Storage.open("/XTData/llm_token", O_WRITE | O_CREAT | O_TRUNC);
-  if (xtFile) {
-    xtFile.write(cleaned.c_str(), cleaned.length());
-    xtFile.close();
-    saved = true;
+  bool saved = Storage.writeFile("/XTData/llm_token", cleaned.c_str());
+  if (saved) {
     LOG_INF("GEMINI", "Saved token to /XTData/llm_token");
   }
 
   // Also save to /.crosspoint/gemini_token.txt as fallback
-  auto cpFile = Storage.open("/.crosspoint/gemini_token.txt", O_WRITE | O_CREAT | O_TRUNC);
-  if (cpFile) {
-    cpFile.write(cleaned.c_str(), cleaned.length());
-    cpFile.close();
-    saved = true;
-  }
+  Storage.writeFile("/.crosspoint/gemini_token.txt", cleaned.c_str());
 
   return saved;
 }

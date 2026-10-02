@@ -24,7 +24,7 @@ class Client {
 
   // Sends prompt to Gemini API, including prior conversation history turns
   Response query(const std::string& prompt, const std::vector<Message>& history, const std::string& token,
-                 const std::string& model = "gemini-2.5-flash");
+                 const std::string& model = "gemini-2.0-flash");
 
   // Tests connection with an empty ping/prompt
   bool testConnection(const std::string& token, std::string& outError);

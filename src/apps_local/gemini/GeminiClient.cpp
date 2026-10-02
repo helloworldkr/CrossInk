@@ -140,7 +140,7 @@ Response Client::query(const std::string& prompt, const std::vector<Message>& hi
     return res;
   }
 
-  std::string activeModel = model.empty() ? "gemini-2.5-flash" : model;
+  std::string activeModel = model.empty() ? "gemini-2.0-flash" : model;
   std::string url = "https://generativelanguage.googleapis.com/v1beta/models/" + activeModel +
                     ":generateContent?key=" + token;
   std::string payload = buildPayload(prompt, history);
@@ -183,10 +183,10 @@ Response Client::query(const std::string& prompt, const std::vector<Message>& hi
 
   LOG_INF("GEMINI", "Response received: HTTP %d (%u bytes)", httpCode, (unsigned)responseBody.length());
 
-  // If gemini-2.5-flash returned 404 (e.g. model not available in API version), try gemini-2.0-flash fallback
-  if (httpCode == 404 && activeModel != "gemini-2.0-flash") {
-    LOG_INF("GEMINI", "Model %s returned 404, falling back to gemini-2.0-flash", activeModel.c_str());
-    return query(prompt, history, token, "gemini-2.0-flash");
+  // If gemini-2.0-flash returned 404 (e.g. model not available in API version), try gemini-1.5-flash fallback
+  if (httpCode == 404 && activeModel != "gemini-1.5-flash") {
+    LOG_INF("GEMINI", "Model %s returned 404, falling back to gemini-1.5-flash", activeModel.c_str());
+    return query(prompt, history, token, "gemini-1.5-flash");
   }
 
   return parseResponse(httpCode, responseBody);

@@ -25,13 +25,14 @@ class GeminiActivity final : public Activity {
   void loop() override;
   void render(RenderLock&&) override;
 
-  bool preventAutoSleep() override { return queryPending_ || queryInFlight_; }
-  bool skipLoopDelay() override { return queryPending_ || queryInFlight_; }
+  bool preventAutoSleep() override { return state_ == State::Thinking || state_ == State::Querying; }
+  bool skipLoopDelay() override { return state_ == State::Thinking || state_ == State::Querying; }
 
  private:
   enum class State {
     Welcome,
     Thinking,
+    Querying,
     Response,
     Error,
     Notice,
@@ -51,12 +52,12 @@ class GeminiActivity final : public Activity {
   std::vector<gemini::Message> history_;
   std::string currentPrompt_;
   std::string fullResponseText_;
-  std::vector<std::string> pages_;
   int currentPage_ = 0;
+  int totalPages_ = 1;
+  int linesPerPage_ = 25;
   bool savedToNotes_ = false;
 
-  bool queryPending_ = false;
-  bool queryInFlight_ = false;
+  bool renderedThinking_ = false;
 
   std::string errorTitle_;
   std::string errorMessage_;
