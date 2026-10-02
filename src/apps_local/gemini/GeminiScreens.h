@@ -26,6 +26,7 @@ enum : fui::ActionId {
 
 struct WelcomeModel {
   bool wifiConnected = false;
+  bool wifiConnecting = false;
   std::string wifiSsid;
   bool tokenFound = false;
   std::string tokenSource;

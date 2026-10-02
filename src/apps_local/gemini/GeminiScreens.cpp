@@ -123,7 +123,14 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
   curY += 10;
 
   // Wi-Fi line
-  std::string wifiStr = model.wifiConnected ? ("Wi-Fi: " + model.wifiSsid) : "Wi-Fi: Disconnected";
+  std::string wifiStr;
+  if (model.wifiConnected) {
+    wifiStr = "Wi-Fi: " + model.wifiSsid;
+  } else if (model.wifiConnecting) {
+    wifiStr = "Wi-Fi: Connecting (" + (model.wifiSsid.empty() ? "..." : model.wifiSsid) + ")...";
+  } else {
+    wifiStr = "Wi-Fi: Disconnected";
+  }
   screen.target().text(fui::makeRect(innerX, curY, innerW, 20), wifiStr.c_str(),
                        style(toybox::kSmallFont, fui::TextAlign::Left));
   curY += 24;
@@ -182,7 +189,7 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
 
   if (!model.wifiConnected) {
     fui::ButtonProps wifiBtn;
-    wifiBtn.label = "CONNECT TO WI-FI";
+    wifiBtn.label = model.wifiConnecting ? "CONNECTING..." : "CONNECT TO WI-FI";
     wifiBtn.action = ActionConnectWifi;
     wifiBtn.styles = toybox::invertedStyles();
     screen.button(wifiBtn, fui::makeRect(footer.x, footer.y, primW, footer.height));

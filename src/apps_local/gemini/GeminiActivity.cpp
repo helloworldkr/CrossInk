@@ -1,5 +1,6 @@
 #include "GeminiActivity.h"
 
+#include <HalClock.h>
 #include <HalStorage.h>
 #include <Logging.h>
 #include <Memory.h>
@@ -7,6 +8,8 @@
 #include <algorithm>
 #include <ctime>
 
+#include "../../CrossPointSettings.h"
+#include "../../WifiCredentialStore.h"
 #include "../../activities/ActivityManager.h"
 #include "../../activities/network/WifiSelectionActivity.h"
 #include "../../activities/util/KeyboardEntryActivity.h"
@@ -68,12 +71,122 @@ void GeminiActivity::onEnter() {
   std::string info = "App entered. Model: " + modelName_ + " Token: " + (tokenInfo_.isFound ? ("Found in " + tokenInfo_.sourcePath) : "Not found in /XTData/llm_token");
   logGemini(info);
 
+  tryAutoConnectWifi();
+
   requestUpdate();
 }
 
 void GeminiActivity::onExit() {
   Activity::onExit();
+  if (autoConnectingWifi_ && WiFi.status() != WL_CONNECTED) {
+    WiFi.disconnect();
+  }
+  autoConnectingWifi_ = false;
   renderedThinking_ = false;
+}
+
+void GeminiActivity::tryAutoConnectWifi() {
+  if (WiFi.status() == WL_CONNECTED) {
+    autoConnectingWifi_ = false;
+    return;
+  }
+
+  const size_t count = WIFI_STORE.getCredentialCount();
+  if (count == 0) {
+    LOG_DBG("GEMINI", "No saved Wi-Fi networks in store for auto-connect");
+    return;
+  }
+
+  std::string targetSsid = WIFI_STORE.getLastConnectedSsid();
+  std::optional<WifiCredential> targetCred;
+  if (!targetSsid.empty()) {
+    targetCred = WIFI_STORE.findCredential(targetSsid);
+  }
+  if (!targetCred.has_value()) {
+    targetCred = WIFI_STORE.getCredentialAt(0);
+    if (targetCred.has_value()) {
+      targetSsid = targetCred->ssid;
+    }
+  }
+
+  if (!targetCred.has_value() || targetSsid.empty()) {
+    return;
+  }
+
+  LOG_INF("GEMINI", "Auto-connecting to saved Wi-Fi: %s", targetSsid.c_str());
+  logGemini("Auto-connecting to saved Wi-Fi: " + targetSsid);
+  autoConnectingWifi_ = true;
+  wifiConnectStartTime_ = millis();
+  autoConnectSsid_ = targetSsid;
+
+  WiFi.persistent(false);
+  if (!WiFi.mode(WIFI_STA)) {
+    LOG_ERR("GEMINI", "Failed to set WIFI_STA mode for auto-connect");
+    autoConnectingWifi_ = false;
+    return;
+  }
+
+  WiFi.disconnect(false, false, 500);
+
+  WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+  WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+
+  String mac = WiFi.macAddress();
+  mac.replace(":", "");
+  String hostname = "CrossPoint-Reader-" + mac;
+  WiFi.setHostname(hostname.c_str());
+
+  if (!targetCred->password.empty()) {
+    WiFi.begin(targetCred->ssid.c_str(), targetCred->password.c_str());
+  } else {
+    WiFi.begin(targetCred->ssid.c_str());
+  }
+}
+
+void GeminiActivity::checkWifiAutoConnect() {
+  if (!autoConnectingWifi_) return;
+
+  const wl_status_t status = WiFi.status();
+  const unsigned long now = millis();
+
+  if (status == WL_CONNECTED) {
+    IPAddress ip = WiFi.localIP();
+    char ipStr[32];
+    snprintf(ipStr, sizeof(ipStr), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+    LOG_INF("GEMINI", "Auto-connected to Wi-Fi: %s (IP: %s, RSSI: %d)", autoConnectSsid_.c_str(), ipStr, WiFi.RSSI());
+    logGemini("Auto-connected to Wi-Fi: " + autoConnectSsid_ + " (IP: " + ipStr + ")");
+    autoConnectingWifi_ = false;
+    WIFI_STORE.setLastConnectedSsid(autoConnectSsid_);
+
+    if (halClock.isAvailable() && (!SETTINGS.clockHasBeenSynced || !SETTINGS.clockDateHasBeenSynced)) {
+      if (halClock.syncFromNTP()) {
+        SETTINGS.clockHasBeenSynced = 1;
+        SETTINGS.clockDateHasBeenSynced = 1;
+        SETTINGS.saveToFile();
+      }
+    }
+
+    if (state_ == State::Notice && noticeTitle_ == "Connecting to Wi-Fi") {
+      state_ = State::Welcome;
+    } else if (state_ == State::Error && errorShowWifi_) {
+      state_ = State::Welcome;
+    }
+
+    interactionsReady_ = false;
+    requestUpdate();
+    return;
+  }
+
+  // Timeout or failure check (15 seconds)
+  if (status == WL_CONNECT_FAILED || status == WL_NO_SSID_AVAIL || (now - wifiConnectStartTime_ > 15000)) {
+    LOG_INF("GEMINI", "Auto-connect to Wi-Fi (%s) failed or timed out (status=%d)", autoConnectSsid_.c_str(),
+            static_cast<int>(status));
+    logGemini("Auto-connect to Wi-Fi failed or timed out for: " + autoConnectSsid_);
+    autoConnectingWifi_ = false;
+    interactionsReady_ = false;
+    requestUpdate();
+    return;
+  }
 }
 
 void GeminiActivity::resetChat() {
@@ -102,6 +215,15 @@ void GeminiActivity::askPrompt(const std::string& prompt) {
   errorShowModel_ = false;
 
   if (WiFi.status() != WL_CONNECTED) {
+    if (autoConnectingWifi_) {
+      noticeTitle_ = "Connecting to Wi-Fi";
+      noticeMessage_ = "Connecting to " + autoConnectSsid_ + "...\nPlease wait a few seconds for Wi-Fi to establish.";
+      noticeReturnState_ = State::Welcome;
+      state_ = State::Notice;
+      interactionsReady_ = false;
+      requestUpdate();
+      return;
+    }
     errorTitle_ = "Wi-Fi Not Connected";
     errorMessage_ = "Google Gemini requires an active internet connection. Please connect to Wi-Fi.";
     errorShowWifi_ = true;
@@ -256,6 +378,7 @@ void GeminiActivity::openModelSelection() {
 }
 
 void GeminiActivity::openWifiSelection() {
+  autoConnectingWifi_ = false;
   startActivityForResult(makeUniqueNoThrow<WifiSelectionActivity>(renderer, mappedInput),
                          [this](const ActivityResult& result) {
                            interactionsReady_ = false;
@@ -298,6 +421,8 @@ void GeminiActivity::saveResponseToNotes() {
 }
 
 void GeminiActivity::loop() {
+  checkWifiAutoConnect();
+
   // Back button / gesture
   if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
     switch (state_) {
@@ -484,7 +609,8 @@ void GeminiActivity::render(RenderLock&&) {
     case State::Welcome: {
       geminiui::WelcomeModel model;
       model.wifiConnected = (WiFi.status() == WL_CONNECTED);
-      model.wifiSsid = model.wifiConnected ? WiFi.SSID().c_str() : "";
+      model.wifiConnecting = autoConnectingWifi_;
+      model.wifiSsid = model.wifiConnected ? WiFi.SSID().c_str() : (autoConnectingWifi_ ? autoConnectSsid_ : "");
       model.tokenFound = tokenInfo_.isFound;
       model.tokenSource = tokenInfo_.sourcePath;
       model.maskedToken = gemini::maskToken(tokenInfo_.token);

@@ -25,10 +25,12 @@ class GeminiActivity final : public Activity {
   void loop() override;
   void render(RenderLock&&) override;
 
-  bool preventAutoSleep() override { return state_ == State::Thinking || state_ == State::Querying; }
-  bool skipLoopDelay() override { return state_ == State::Thinking || state_ == State::Querying; }
+  bool preventAutoSleep() override { return autoConnectingWifi_ || state_ == State::Thinking || state_ == State::Querying; }
+  bool skipLoopDelay() override { return autoConnectingWifi_ || state_ == State::Thinking || state_ == State::Querying; }
 
  private:
+  void tryAutoConnectWifi();
+  void checkWifiAutoConnect();
   enum class State {
     Welcome,
     Thinking,
@@ -74,4 +76,8 @@ class GeminiActivity final : public Activity {
 
   toybox::Interactions interactions_;
   bool interactionsReady_ = false;
+
+  bool autoConnectingWifi_ = false;
+  unsigned long wifiConnectStartTime_ = 0;
+  std::string autoConnectSsid_;
 };
