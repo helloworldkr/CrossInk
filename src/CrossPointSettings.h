@@ -418,6 +418,11 @@ class CrossPointSettings : public PersistableStore<CrossPointSettings> {
   // Night mode: inverted output polarity, applied to every activity per render
   // by ActivityManager. Quick Resume preserves it; other sleep screens remain normal.
   uint8_t screenInverted = 0;
+  // Daily dark mode schedule, in local minutes since midnight.
+  // 0xFFFF represents an unset endpoint.
+  uint8_t darkModeScheduleEnabled = 0;
+  uint16_t darkModeScheduleStart = 0xFFFF;
+  uint16_t darkModeScheduleEnd = 0xFFFF;
   // Sleep screen cover mode settings
   uint8_t sleepScreenCoverMode = FIT;
   // Sleep screen cover filter

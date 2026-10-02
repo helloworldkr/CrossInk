@@ -26,6 +26,7 @@ enum class SettingAction {
   OPDSBrowser,
   DisplaySleepScreen,
   DisplayFrontlight,
+  DisplayDarkModeSchedule,
   ReaderFontOptions,
   ReaderPageLayout,
   ScreenMargin,
@@ -235,6 +236,7 @@ class SettingsActivity final : public Activity {
   std::vector<SettingInfo> displaySettings;
   std::vector<SettingInfo> displaySleepSettings;
   std::vector<SettingInfo> displayFrontlightSettings;
+  std::vector<SettingInfo> displayDarkModeScheduleSettings;
   std::vector<SettingInfo> readerSettings;
   std::vector<SettingInfo> readerFontSettings;
   std::vector<SettingInfo> readerPageLayoutSettings;

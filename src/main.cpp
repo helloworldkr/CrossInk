@@ -115,6 +115,7 @@ inline esp_sleep_wakeup_cause_t esp_sleep_get_wakeup_cause() { return ESP_SLEEP_
 #include "util/BatteryDiagnosticLog.h"
 #include "util/ButtonNavigator.h"
 #include "util/ButtonShortcutController.h"
+#include "util/DarkModeSchedule.h"
 #include "util/Dictionary.h"
 #include "util/DictionaryRegistry.h"
 #include "util/FrontlightSchedule.h"
@@ -1355,6 +1356,20 @@ void setup() {
   }
   Frontlight.begin(SETTINGS.frontlightBrightness, SETTINGS.frontlightWarmth, restoreLightOn);
 
+  if (halClock.isAvailable() &&
+      DarkModeSchedule::hasCompleteWindow(SETTINGS.darkModeScheduleEnabled != 0,
+                                          SETTINGS.darkModeScheduleStart,
+                                          SETTINGS.darkModeScheduleEnd)) {
+    uint8_t utcHour = 0;
+    uint8_t utcMinute = 0;
+    if (halClock.getTime(utcHour, utcMinute)) {
+      const uint16_t localTimeOfDay =
+          DarkModeSchedule::localTimeOfDay(utcHour, utcMinute, SETTINGS.clockUtcOffsetQ);
+      SETTINGS.screenInverted = DarkModeSchedule::containsTimeOfDay(
+          SETTINGS.darkModeScheduleStart, SETTINGS.darkModeScheduleEnd, localTimeOfDay) ? 1 : 0;
+    }
+  }
+
   if (recoveryFirmwareMode) {
     LOG_INF("MAIN", "Recovery firmware mode (%s + POWER held at boot)",
             (BoardConfig::isX4Pro() || CROSSINK_APP_DEVICE_X4CLASSIC) ? "DOWN" : "UP");
@@ -1798,6 +1813,37 @@ void loop() {
         activityManager.requestUpdate();
       }
       lastBatteryPercent = percent;
+    }
+  }
+
+  // Check dark mode schedule transitions while awake
+  static unsigned long lastDarkModeCheck = 0UL;
+  static int lastInWindow = -1;
+  const bool darkModeScheduleActive =
+      halClock.isAvailable() &&
+      DarkModeSchedule::hasCompleteWindow(SETTINGS.darkModeScheduleEnabled != 0,
+                                          SETTINGS.darkModeScheduleStart,
+                                          SETTINGS.darkModeScheduleEnd);
+  if (!darkModeScheduleActive) {
+    lastInWindow = -1;
+  } else {
+    const unsigned long now = millis();
+    if (now - lastDarkModeCheck >= 30000UL || lastInWindow == -1) {
+      lastDarkModeCheck = now;
+      uint8_t utcHour = 0;
+      uint8_t utcMinute = 0;
+      if (halClock.getTime(utcHour, utcMinute)) {
+        const uint16_t localMinutes =
+            DarkModeSchedule::localTimeOfDay(utcHour, utcMinute, SETTINGS.clockUtcOffsetQ);
+        const bool inWindow = DarkModeSchedule::containsTimeOfDay(
+            SETTINGS.darkModeScheduleStart, SETTINGS.darkModeScheduleEnd, localMinutes);
+        if (lastInWindow != -1 && (inWindow != (lastInWindow != 0))) {
+          SETTINGS.screenInverted = inWindow ? 1 : 0;
+          display.setInverted(SETTINGS.screenInverted != 0);
+          activityManager.requestUpdate();
+        }
+        lastInWindow = inWindow ? 1 : 0;
+      }
     }
   }
 

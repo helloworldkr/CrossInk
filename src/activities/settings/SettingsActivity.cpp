@@ -48,6 +48,7 @@
 #include "components/icons/frontlightHeaderIcons.h"
 #include "fontIds.h"
 #include "util/DictionaryRegistry.h"
+#include "util/DarkModeSchedule.h"
 #include "util/FrontlightSchedule.h"
 
 namespace fui = freeink::ui;
@@ -193,6 +194,14 @@ std::string formatSettingValue(const SettingInfo& setting) {
     formatFrontlightScheduleTime(timeOfDay, valueBuffer, sizeof(valueBuffer));
     return valueBuffer;
   }
+  if (setting.value16Ptr == &CrossPointSettings::darkModeScheduleStart ||
+      setting.value16Ptr == &CrossPointSettings::darkModeScheduleEnd) {
+    const uint16_t timeOfDay = SETTINGS.*(setting.value16Ptr);
+    if (SETTINGS.darkModeScheduleEnabled == 0 || !FrontlightSchedule::isTimeOfDayValid(timeOfDay)) return "--";
+    char valueBuffer[16];
+    formatFrontlightScheduleTime(timeOfDay, valueBuffer, sizeof(valueBuffer));
+    return valueBuffer;
+  }
   if (setting.nameId == StrId::STR_TIME_TO_SLEEP) {
     if (SETTINGS.sleepTimeoutMinutes >= CrossPointSettings::SLEEP_TIMEOUT_NEVER_MINUTES) {
       return tr(STR_SLEEP_NEVER);
@@ -236,6 +245,12 @@ fui::BitmapRef frontlightScheduleEndpointIcon(const SettingInfo& setting) {
   if (setting.value16Ptr == &CrossPointSettings::frontlightScheduleEnd) {
     return fui::bitmapFromIcon(icon_lightbulb_off_28);
   }
+  if (setting.value16Ptr == &CrossPointSettings::darkModeScheduleStart) {
+    return fui::bitmapFromIcon(icon_lightbulb_off_28);
+  }
+  if (setting.value16Ptr == &CrossPointSettings::darkModeScheduleEnd) {
+    return fui::bitmapFromIcon(icon_lightbulb_28);
+  }
   return {};
 }
 
@@ -271,6 +286,7 @@ void SettingsActivity::rebuildSettingsLists() {
   displaySettings.clear();
   displaySleepSettings.clear();
   displayFrontlightSettings.clear();
+  displayDarkModeScheduleSettings.clear();
   readerSettings.clear();
   readerFontSettings.clear();
   readerPageLayoutSettings.clear();
@@ -313,6 +329,7 @@ void SettingsActivity::rebuildSettingsLists() {
 #endif
   displaySleepSettings = buildDisplaySleepSettingsList(allSettings);
   displayFrontlightSettings = buildDisplayFrontlightSettingsList(allSettings);
+  displayDarkModeScheduleSettings = buildDisplayDarkModeScheduleSettingsList(allSettings);
   readerSettings = buildReaderSettingsParentList(allSettings);
   readerFontSettings = buildReaderFontSettingsList(allSettings);
   readerPageLayoutSettings = buildReaderPageLayoutSettingsList(allSettings);
@@ -381,6 +398,8 @@ void SettingsActivity::setCurrentSettingsForCategory() {
         currentSettings = &displaySleepSettings;
       } else if (activeSubmenu == SettingAction::DisplayFrontlight) {
         currentSettings = &displayFrontlightSettings;
+      } else if (activeSubmenu == SettingAction::DisplayDarkModeSchedule) {
+        currentSettings = &displayDarkModeScheduleSettings;
       } else {
         currentSettings = &displaySettings;
       }
@@ -463,6 +482,8 @@ StrId SettingsActivity::activeSubmenuTitleId() const {
       return StrId::STR_DISPLAY_SLEEP_SCREEN;
     case SettingAction::DisplayFrontlight:
       return StrId::STR_FRONTLIGHT;
+    case SettingAction::DisplayDarkModeSchedule:
+      return StrId::STR_DARK_MODE_SCHEDULE;
     case SettingAction::ReaderFontOptions:
       return StrId::STR_READER_FONT_OPTIONS;
     case SettingAction::ReaderPageLayout:
@@ -971,7 +992,9 @@ void SettingsActivity::toggleCurrentSetting() {
     return;
   }
   if (setting.value16Ptr == &CrossPointSettings::frontlightScheduleStart ||
-      setting.value16Ptr == &CrossPointSettings::frontlightScheduleEnd) {
+      setting.value16Ptr == &CrossPointSettings::frontlightScheduleEnd ||
+      setting.value16Ptr == &CrossPointSettings::darkModeScheduleStart ||
+      setting.value16Ptr == &CrossPointSettings::darkModeScheduleEnd) {
     openFrontlightScheduleTimePicker(setting.value16Ptr, setting.nameId);
     return;
   }
@@ -1135,6 +1158,7 @@ void SettingsActivity::toggleCurrentSetting() {
       case SettingAction::SystemGlobalStats:
       case SettingAction::DisplaySleepScreen:
       case SettingAction::DisplayFrontlight:
+      case SettingAction::DisplayDarkModeSchedule:
       case SettingAction::None:
         // Do nothing
         break;
@@ -1150,6 +1174,21 @@ void SettingsActivity::toggleCurrentSetting() {
   syncQuickResumeTimeoutForSleepScreen(sleepScreenChanged, quickResumeTimeoutChanged);
   if (isTwoFingerSwipeSetting(setting.valuePtr)) {
     CrossPointSettings::normalizeTwoFingerSwipeActions(SETTINGS, setting.valuePtr);
+  }
+  if (setting.valuePtr == &CrossPointSettings::darkModeScheduleEnabled) {
+    if (halClock.isAvailable() &&
+        DarkModeSchedule::hasCompleteWindow(SETTINGS.darkModeScheduleEnabled != 0,
+                                            SETTINGS.darkModeScheduleStart,
+                                            SETTINGS.darkModeScheduleEnd)) {
+      uint8_t utcHour = 0;
+      uint8_t utcMinute = 0;
+      if (halClock.getTime(utcHour, utcMinute)) {
+        const uint16_t localMinutes =
+            DarkModeSchedule::localTimeOfDay(utcHour, utcMinute, SETTINGS.clockUtcOffsetQ);
+        SETTINGS.screenInverted = DarkModeSchedule::containsTimeOfDay(
+            SETTINGS.darkModeScheduleStart, SETTINGS.darkModeScheduleEnd, localMinutes) ? 1 : 0;
+      }
+    }
   }
   QuickActions::settingChanged(SETTINGS, setting.valuePtr);
   SETTINGS.saveToFile();
@@ -1228,6 +1267,22 @@ void SettingsActivity::openFrontlightScheduleTimePicker(uint16_t CrossPointSetti
                          [this, valuePtr](const ActivityResult& result) {
                            if (!result.isCancelled) {
                              SETTINGS.*valuePtr = static_cast<uint16_t>(std::get<IntervalResult>(result.data).value);
+                             if (valuePtr == &CrossPointSettings::darkModeScheduleStart ||
+                                 valuePtr == &CrossPointSettings::darkModeScheduleEnd) {
+                               if (halClock.isAvailable() &&
+                                   DarkModeSchedule::hasCompleteWindow(SETTINGS.darkModeScheduleEnabled != 0,
+                                                                       SETTINGS.darkModeScheduleStart,
+                                                                       SETTINGS.darkModeScheduleEnd)) {
+                                 uint8_t utcHour = 0;
+                                 uint8_t utcMinute = 0;
+                                 if (halClock.getTime(utcHour, utcMinute)) {
+                                   const uint16_t localMinutes =
+                                       DarkModeSchedule::localTimeOfDay(utcHour, utcMinute, SETTINGS.clockUtcOffsetQ);
+                                   SETTINGS.screenInverted = DarkModeSchedule::containsTimeOfDay(
+                                       SETTINGS.darkModeScheduleStart, SETTINGS.darkModeScheduleEnd, localMinutes) ? 1 : 0;
+                                 }
+                               }
+                             }
                              SETTINGS.saveToFile();
                            }
                            requestUpdate();
@@ -1529,7 +1584,11 @@ void SettingsActivity::render(RenderLock&&) {
                       (*currentSettings)[selectedSettingIndex - 1].value16Ptr ==
                           &CrossPointSettings::frontlightScheduleStart ||
                       (*currentSettings)[selectedSettingIndex - 1].value16Ptr ==
-                          &CrossPointSettings::frontlightScheduleEnd)
+                          &CrossPointSettings::frontlightScheduleEnd ||
+                      (*currentSettings)[selectedSettingIndex - 1].value16Ptr ==
+                          &CrossPointSettings::darkModeScheduleStart ||
+                      (*currentSettings)[selectedSettingIndex - 1].value16Ptr ==
+                          &CrossPointSettings::darkModeScheduleEnd)
                  ? tr(STR_SELECT)
                  : tr(STR_TOGGLE));
 

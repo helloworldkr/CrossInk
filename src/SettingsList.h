@@ -621,6 +621,14 @@ inline const std::vector<SettingInfo>& getBaseSettingsList() {
     add(SettingInfo::Value16(StrId::STR_END, &CrossPointSettings::frontlightScheduleEnd,
                              {0, FrontlightSchedule::kUnsetTimeOfDay, 1}, "frontlightScheduleEnd",
                              StrId::STR_CAT_DISPLAY));
+    add(SettingInfo::Toggle(StrId::STR_DARK_MODE_SCHEDULE, &CrossPointSettings::darkModeScheduleEnabled,
+                            "darkModeScheduleEnabled", StrId::STR_CAT_DISPLAY));
+    add(SettingInfo::Value16(StrId::STR_DARK_MODE_SCHEDULE_START, &CrossPointSettings::darkModeScheduleStart,
+                             {0, FrontlightSchedule::kUnsetTimeOfDay, 1}, "darkModeScheduleStart",
+                             StrId::STR_CAT_DISPLAY));
+    add(SettingInfo::Value16(StrId::STR_DARK_MODE_SCHEDULE_END, &CrossPointSettings::darkModeScheduleEnd,
+                             {0, FrontlightSchedule::kUnsetTimeOfDay, 1}, "darkModeScheduleEnd",
+                             StrId::STR_CAT_DISPLAY));
 
     // --- Reader ---
     // Built-in font-family entry. Replaced per-call with a registry-aware
@@ -1315,12 +1323,35 @@ inline std::vector<SettingInfo> buildGroupedDisplaySettingsList(const std::vecto
   }
   addDisplaySetting(StrId::STR_REFRESH_FREQ);
   addDisplaySetting(StrId::STR_NIGHT_MODE);
+  if (halClock.isAvailable()) {
+    displaySettings.push_back(
+        SettingInfo::Submenu(StrId::STR_DARK_MODE_SCHEDULE, SettingAction::DisplayDarkModeSchedule));
+  }
   addDisplaySetting(StrId::STR_UI_THEME);
   addDisplaySetting(StrId::STR_UI_SCALE);
   addDisplaySetting(StrId::STR_RECENT_BOOKS_VIEW);
   addDisplaySetting(StrId::STR_SUNLIGHT_FADING_FIX);
 
   return displaySettings;
+}
+
+inline std::vector<SettingInfo> buildDisplayDarkModeScheduleSettingsList(const std::vector<SettingInfo>& allSettings) {
+  std::vector<SettingInfo> settings;
+  settings.reserve(3);
+
+  auto addScheduleSetting = [&](const StrId nameId, const StrId displayNameId) {
+    const auto it = std::find_if(allSettings.begin(), allSettings.end(),
+                                 [nameId](const auto& setting) { return setting.nameId == nameId; });
+    if (it != allSettings.end()) {
+      settings.push_back(*it);
+      settings.back().nameId = displayNameId;
+    }
+  };
+
+  addScheduleSetting(StrId::STR_DARK_MODE_SCHEDULE, StrId::STR_FRONTLIGHT_SCHEDULE);
+  addScheduleSetting(StrId::STR_DARK_MODE_SCHEDULE_START, StrId::STR_START);
+  addScheduleSetting(StrId::STR_DARK_MODE_SCHEDULE_END, StrId::STR_END);
+  return settings;
 }
 
 inline std::vector<SettingInfo> buildDisplayFrontlightSettingsList(const std::vector<SettingInfo>& allSettings) {

@@ -147,6 +147,9 @@ bool isWebSettingAvailable(const SettingInfo& setting) {
       case StrId::STR_DATE_FORMAT:
       case StrId::STR_DATE_SEPARATOR:
       case StrId::STR_CLOCK_SYNCED:
+      case StrId::STR_DARK_MODE_SCHEDULE:
+      case StrId::STR_DARK_MODE_SCHEDULE_START:
+      case StrId::STR_DARK_MODE_SCHEDULE_END:
         return false;
       default:
         break;

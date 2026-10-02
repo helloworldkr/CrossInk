@@ -623,13 +623,15 @@ bool CrossPointSettings::fromJson(JsonVariantConst doc, bool importingCrossPoint
     needsResave = true;
   }
 
-  const auto normalizeFrontlightScheduleTime = [&needsResave](uint16_t& timeOfDay) {
+  const auto normalizeScheduleTime = [&needsResave](uint16_t& timeOfDay) {
     if (FrontlightSchedule::isTimeOfDayValid(timeOfDay) || timeOfDay == FrontlightSchedule::kUnsetTimeOfDay) return;
     timeOfDay = FrontlightSchedule::kUnsetTimeOfDay;
     needsResave = true;
   };
-  normalizeFrontlightScheduleTime(frontlightScheduleStart);
-  normalizeFrontlightScheduleTime(frontlightScheduleEnd);
+  normalizeScheduleTime(frontlightScheduleStart);
+  normalizeScheduleTime(frontlightScheduleEnd);
+  normalizeScheduleTime(darkModeScheduleStart);
+  normalizeScheduleTime(darkModeScheduleEnd);
 
   if (normalizeTwoFingerSwipeActions(*this)) needsResave = true;
 
