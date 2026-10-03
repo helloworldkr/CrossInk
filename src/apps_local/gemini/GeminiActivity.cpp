@@ -192,6 +192,7 @@ void GeminiActivity::checkWifiAutoConnect() {
 void GeminiActivity::resetChat() {
   history_.clear();
   currentPrompt_.clear();
+  draftPrompt_.clear();
   fullResponseText_.clear();
   currentPage_ = 0;
   totalPages_ = 1;
@@ -268,6 +269,7 @@ void GeminiActivity::openKeyboardForPrompt(const std::string& prefill) {
     }
     const auto& entered = std::get<KeyboardResult>(result.data);
     if (!entered.text.empty()) {
+      draftPrompt_ = entered.text;
       askPrompt(entered.text);
     }
   });
@@ -472,8 +474,15 @@ void GeminiActivity::loop() {
 
   // Confirm key
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
-    if (state_ == State::Welcome || state_ == State::Response) {
-      openKeyboardForPrompt();
+    if (state_ == State::Welcome) {
+      if (!draftPrompt_.empty()) {
+        askPrompt(draftPrompt_);
+      } else {
+        openKeyboardForPrompt("");
+      }
+      return;
+    } else if (state_ == State::Response) {
+      openKeyboardForPrompt("");
       return;
     }
   }
@@ -538,23 +547,21 @@ void GeminiActivity::loop() {
 
   switch (action.action) {
     case geminiui::ActionAsk:
-      openKeyboardForPrompt();
-      return;
-    case geminiui::ActionQuickPrompt: {
-      const char* chips[] = {
-          "Explain this in simple terms: ",
-          "Summarize the main ideas of: ",
-          "Key vocabulary and definitions for: ",
-          "Brainstorm creative story ideas about: ",
-      };
-      int idx = action.value;
-      if (idx >= 0 && idx < 4) {
-        openKeyboardForPrompt(chips[idx]);
+    case geminiui::ActionSendPrompt:
+      if (!draftPrompt_.empty()) {
+        askPrompt(draftPrompt_);
       } else {
-        openKeyboardForPrompt();
+        openKeyboardForPrompt("");
       }
       return;
-    }
+    case geminiui::ActionEditPrompt:
+      openKeyboardForPrompt(draftPrompt_);
+      return;
+    case geminiui::ActionClearPrompt:
+      draftPrompt_.clear();
+      interactionsReady_ = false;
+      requestUpdate();
+      return;
     case geminiui::ActionNewChat:
       resetChat();
       return;
@@ -615,6 +622,7 @@ void GeminiActivity::render(RenderLock&&) {
       model.tokenSource = tokenInfo_.sourcePath;
       model.maskedToken = gemini::maskToken(tokenInfo_.token);
       model.modelName = modelName_;
+      model.draftPrompt = draftPrompt_;
       geminiui::drawWelcome(screen, model);
       break;
     }

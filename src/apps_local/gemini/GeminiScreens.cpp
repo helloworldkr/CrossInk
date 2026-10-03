@@ -96,9 +96,9 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
   const fui::Rect footer = footerBand(device);
 
   // Two-column split on landscape display:
-  // Left: Assistant Status & Guidance Card
-  // Right: Quick Prompt Buttons
-  constexpr int leftW = 344;
+  // Left: Assistant Status Card (compact, small headers and readable Wi-Fi)
+  // Right: Editable Prompt Box with Send Button
+  constexpr int leftW = 300;
   constexpr int gap = 14;
   const int rightW = band.width - leftW - gap;
 
@@ -110,76 +110,129 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
   const int innerW = leftCard.width - 28;
   int curY = leftCard.y + 14;
 
-  screen.target().text(fui::makeRect(innerX, curY, innerW, 18), "ASSISTANT STATUS",
+  // 1. Assistant status and Google Gemini (small)
+  screen.target().text(fui::makeRect(innerX, curY, innerW, 16), "ASSISTANT STATUS",
+                       style(toybox::kSmallFont, fui::TextAlign::Left));
+  curY += 18;
+
+  screen.target().text(fui::makeRect(innerX, curY, innerW, 16), "Google Gemini",
                        style(toybox::kSmallFont, fui::TextAlign::Left));
   curY += 22;
 
-  screen.target().text(fui::makeRect(innerX, curY, innerW, 26), "Google Gemini",
-                       style(toybox::kBodyFont, fui::TextAlign::Left));
-  curY += 34;
-
   // Divider
   screen.target().fill(fui::makeRect(innerX, curY, innerW, 1), fui::Paint::solid(fui::Color::Black));
   curY += 10;
 
-  // Wi-Fi line
+  // 2. Wi-Fi (small yet readable)
   std::string wifiStr;
   if (model.wifiConnected) {
-    wifiStr = "Wi-Fi: " + model.wifiSsid;
+    wifiStr = "Wi-Fi: " + (model.wifiSsid.empty() ? std::string("Connected") : model.wifiSsid);
   } else if (model.wifiConnecting) {
-    wifiStr = "Wi-Fi: Connecting (" + (model.wifiSsid.empty() ? "..." : model.wifiSsid) + ")...";
+    wifiStr = "Wi-Fi: Connecting...";
   } else {
     wifiStr = "Wi-Fi: Disconnected";
   }
-  screen.target().text(fui::makeRect(innerX, curY, innerW, 20), wifiStr.c_str(),
+  screen.target().text(fui::makeRect(innerX, curY, innerW, 18), wifiStr.c_str(),
                        style(toybox::kSmallFont, fui::TextAlign::Left));
-  curY += 24;
+  curY += 22;
 
   // Key line
   std::string keyStr = model.tokenFound ? ("Key: Ready [" + model.maskedToken + "]") : "Key: Missing in /XTData/llm_token";
-  screen.target().text(fui::makeRect(innerX, curY, innerW, 20), keyStr.c_str(),
+  screen.target().text(fui::makeRect(innerX, curY, innerW, 18), keyStr.c_str(),
                        style(toybox::kSmallFont, fui::TextAlign::Left));
-  curY += 24;
+  curY += 22;
 
   // Engine line
   std::string engineStr = "Model: " + model.modelName;
-  screen.target().text(fui::makeRect(innerX, curY, innerW, 20), engineStr.c_str(),
+  screen.target().text(fui::makeRect(innerX, curY, innerW, 18), engineStr.c_str(),
                        style(toybox::kSmallFont, fui::TextAlign::Left));
-  curY += 28;
+  curY += 24;
 
   // Divider
   screen.target().fill(fui::makeRect(innerX, curY, innerW, 1), fui::Paint::solid(fui::Color::Black));
-  curY += 10;
+  curY += 12;
 
   // Guidance tip
-  const char* guide = "Tap a Quick Prompt or 'ASK GEMINI' to type with the keyboard. Or press OK button.";
-  screen.target().text(fui::makeRect(innerX, curY, innerW, 70), guide,
+  const char* guide = "Tap the prompt box on the right to write or edit your question, then tap SEND.";
+  screen.target().text(fui::makeRect(innerX, curY, innerW, 64), guide,
                        style(toybox::kSmallFont, fui::TextAlign::Left, fui::Color::Black, 3));
 
-  // --- Right Column: Quick Prompts ---
+  // --- Right Column: Editable Prompt Box & Send Button ---
   const int rightX = band.x + leftW + gap;
-  screen.target().text(fui::makeRect(rightX, band.y, rightW, 20), "QUICK PROMPTS",
+  const fui::Rect rightCard = fui::makeRect(rightX, band.y, rightW, band.height);
+  cardBox(screen, rightCard);
+
+  const int rInnerX = rightCard.x + 14;
+  const int rInnerW = rightCard.width - 28;
+  int rCurY = rightCard.y + 14;
+
+  screen.target().text(fui::makeRect(rInnerX, rCurY, rInnerW, 18), "PROMPT",
                        style(toybox::kSmallFont, fui::TextAlign::Left));
+  rCurY += 22;
 
-  const char* chips[] = {
-      "Explain in simple terms...",
-      "Summarize key ideas...",
-      "Key concepts & definitions...",
-      "Brainstorm creative ideas...",
-  };
+  const int sendBtnH = 46;
+  const int sendBtnY = rightCard.y + rightCard.height - 14 - sendBtnH;
+  const int promptBoxY = rCurY;
+  const int promptBoxH = sendBtnY - 10 - promptBoxY;
+  const fui::Rect promptBox = fui::makeRect(rInnerX, promptBoxY, rInnerW, promptBoxH);
 
-  constexpr int chipH = 48;
-  constexpr int chipGap = 8;
-  const int chipsStartY = band.y + 26;
+  // 3 & 4. Editable prompt box (tapping opens keyboard; quick buttons removed)
+  fui::ButtonProps promptBtn;
+  promptBtn.label = "";
+  promptBtn.action = ActionEditPrompt;
+  promptBtn.styles = toybox::rowStyles();
+  screen.button(promptBtn, promptBox);
 
-  for (int i = 0; i < 4; ++i) {
-    const fui::Rect chipBox = fui::makeRect(rightX, static_cast<int16_t>(chipsStartY + i * (chipH + chipGap)), rightW, chipH);
-    fui::ButtonProps btn;
-    btn.label = chips[i];
-    btn.action = ActionQuickPrompt;
-    btn.value = static_cast<int16_t>(i);
-    btn.styles = toybox::rowStyles();
-    screen.button(btn, chipBox);
+  if (model.draftPrompt.empty()) {
+    screen.target().text(
+        fui::makeRect(promptBox.x + 14, promptBox.y + 14, promptBox.width - 28, 20),
+        "Tap here to write your prompt...",
+        style(toybox::kSmallFont, fui::TextAlign::Left));
+
+    screen.target().text(
+        fui::makeRect(promptBox.x + 14, promptBox.y + 40, promptBox.width - 28, promptBox.height - 76),
+        "Ask a question, explain a book passage, summarize topics, or brainstorm creative ideas.",
+        style(toybox::kSmallFont, fui::TextAlign::Left, fui::Color::Black, 5));
+
+    screen.target().text(
+        fui::makeRect(promptBox.x + 14, promptBox.y + promptBox.height - 26, promptBox.width - 28, 18),
+        "[ Tap anywhere to open keyboard ]",
+        style(toybox::kSmallFont, fui::TextAlign::Right));
+  } else {
+    screen.target().text(
+        fui::makeRect(promptBox.x + 14, promptBox.y + 14, promptBox.width - 28, promptBox.height - 44),
+        model.draftPrompt.c_str(),
+        style(toybox::kSmallFont, fui::TextAlign::Left, fui::Color::Black, 9));
+
+    screen.target().text(
+        fui::makeRect(promptBox.x + 14, promptBox.y + promptBox.height - 24, promptBox.width - 28, 16),
+        "[ Tap to edit prompt ]",
+        style(toybox::kSmallFont, fui::TextAlign::Right));
+  }
+
+  // 3. Send button (and Clear button if text entered)
+  if (model.draftPrompt.empty()) {
+    fui::ButtonProps sendBtn;
+    sendBtn.label = "WRITE & SEND PROMPT  \u2794";
+    sendBtn.action = ActionSendPrompt;
+    sendBtn.styles = toybox::invertedStyles();
+    screen.button(sendBtn, fui::makeRect(rInnerX, sendBtnY, rInnerW, sendBtnH));
+  } else {
+    constexpr int clearBtnW = 90;
+    constexpr int btnGap = 10;
+    const int sendBtnW = rInnerW - clearBtnW - btnGap;
+
+    fui::ButtonProps clearBtn;
+    clearBtn.label = "CLEAR";
+    clearBtn.action = ActionClearPrompt;
+    clearBtn.styles = toybox::rowStyles();
+    screen.button(clearBtn, fui::makeRect(rInnerX, sendBtnY, clearBtnW, sendBtnH));
+
+    fui::ButtonProps sendBtn;
+    sendBtn.label = "SEND TO GEMINI  \u2794";
+    sendBtn.action = ActionSendPrompt;
+    sendBtn.styles = toybox::invertedStyles();
+    screen.button(sendBtn, fui::makeRect(rInnerX + clearBtnW + btnGap, sendBtnY, sendBtnW, sendBtnH));
   }
 
   // --- Bottom Footer Band ---
@@ -207,8 +260,8 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
     screen.button(keyBtn, fui::makeRect(footer.x + primW + gapW + secW + gapW, footer.y, secW, footer.height));
 
     fui::ButtonProps askBtn;
-    askBtn.label = "ASK";
-    askBtn.action = ActionAsk;
+    askBtn.label = "SEND";
+    askBtn.action = ActionSendPrompt;
     askBtn.styles = toybox::rowStyles();
     screen.button(askBtn, fui::makeRect(footer.x + primW + (gapW + secW) * 2 + gapW, footer.y, secW, footer.height));
   } else if (!model.tokenFound) {
@@ -231,14 +284,14 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
     screen.button(wifiBtn, fui::makeRect(footer.x + primW + gapW + secW + gapW, footer.y, secW, footer.height));
 
     fui::ButtonProps askBtn;
-    askBtn.label = "ASK";
-    askBtn.action = ActionAsk;
+    askBtn.label = "SEND";
+    askBtn.action = ActionSendPrompt;
     askBtn.styles = toybox::rowStyles();
     screen.button(askBtn, fui::makeRect(footer.x + primW + (gapW + secW) * 2 + gapW, footer.y, secW, footer.height));
   } else {
     fui::ButtonProps askBtn;
-    askBtn.label = "ASK GEMINI... (TAP OR PRESS OK)";
-    askBtn.action = ActionAsk;
+    askBtn.label = model.draftPrompt.empty() ? "WRITE & SEND PROMPT (OK)" : "SEND TO GEMINI (OK)";
+    askBtn.action = ActionSendPrompt;
     askBtn.styles = toybox::invertedStyles();
     screen.button(askBtn, fui::makeRect(footer.x, footer.y, primW, footer.height));
 

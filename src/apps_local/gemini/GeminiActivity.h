@@ -55,6 +55,7 @@ class GeminiActivity final : public Activity {
 
   std::vector<gemini::Message> history_;
   std::string currentPrompt_;
+  std::string draftPrompt_;
   std::string fullResponseText_;
   int currentPage_ = 0;
   int totalPages_ = 1;

@@ -22,6 +22,9 @@ enum : fui::ActionId {
   ActionQuickPrompt = 418,
   ActionDismissNotice = 419,
   ActionSelectModel = 420,
+  ActionEditPrompt = 421,
+  ActionSendPrompt = 422,
+  ActionClearPrompt = 423,
 };
 
 struct WelcomeModel {
@@ -32,6 +35,7 @@ struct WelcomeModel {
   std::string tokenSource;
   std::string maskedToken;
   std::string modelName = "gemini-2.5-flash";
+  std::string draftPrompt;
 };
 
 struct ThinkingModel {
