@@ -50,10 +50,11 @@ Have an intelligent AI reading companion right on your e-reader. Ask for clarifi
 ### How It Works
 
 - **Live On-Screen Keyboard & Full-Screen Typing**: Type questions directly into the live prompt box using the authentic on-screen touch keyboard, or tap the prompt card to open the distraction-free full-screen keyboard with cursor control.
+- **Conversational UI Stream**: Automatically transitions from the prompt card into a clean threaded dialogue stream with clear speaker roles (`[YOU - Turn X]` and `[GEMINI]`) and conversational pagination that automatically scrolls to the newest exchange.
 - **Multi-Turn Conversations**: Tap `[ REPLY ]` on any response to ask follow-up questions and continue the conversation seamlessly with full context.
 - **Save with Folder Management**: Tap `[ SAVE ]` to save the complete multi-turn conversation locally. Save to default (`/XTData/gemini_chats`), export to `/notes`, choose an existing directory, or create a new folder on the fly.
-- **Resume Previous Chats**: Tap `[ CHATS ]` on the Welcome screen to browse and reload previous conversations with full pagination and resume chatting where you left off.
-- **One-Tap Quick Actions & Settings**: Instant access to ready-made prompt templates via `[ PROMPTS ]`, saved chat history via `[ CHATS ]`, and model selection / Wi-Fi setup via `[ SETTINGS ]`.
+- **Resume & Load Chats**: Tap `[ RESUME ]` on the Welcome card to jump back into your active conversation, or tap `[ CHATS ]` to browse and reload previous conversations from disk with full pagination.
+- **One-Tap Quick Actions & Settings**: Instant access to ready-made prompt templates via `[ PROMPTS ]`, saved chat history via `[ CHATS ]`, and active model selection / Wi-Fi setup via `[ SETTINGS ]`.
 - **Ready-Made Prompts**: Tap `[ PROMPTS ]` for instant 1-tap templates (*"Summarize key ideas"*, *"Explain simply (ELI5)"*, *"Translate to clear English"*, etc.).
 - **Direct Wi-Fi Inference**: Connects securely to Google's Gemini API over Wi-Fi.
 - **Smart Model Engine**: Defaults to `gemini-2.5-flash` with quick model switching to `gemini-2.5-flash-lite`, `gemini-2.5-pro`, or `gemini-2.0-flash`.
@@ -174,26 +175,27 @@ CrossInk uses [PlatformIO](https://platformio.org/) for building and flashing fi
 git submodule update --init --recursive
 ```
 
-### 2. Build for Your Target
+### 2. Build & Flash for Your Target
 
-- **Desktop Simulator** (macOS/Linux):
-  ```sh
-  pio run -e simulator
-  ```
-- **Xteink X3 / X4 / X4 Classic** (ESP32-C3):
-  ```sh
-  pio run -e default --target upload
-  ```
-- **Seeed Studio Sticky** (ESP32-S3):
-  ```sh
-  pio run -e sticky --target upload
-  ```
-- **Xteink X4 Pro** (ESP32-S3):
-  ```sh
-  pio run -e x4-pro --target upload
-  ```
+| Device / Target | Hardware Profile | Build Only | Build & Upload (USB) |
+| :--- | :--- | :--- | :--- |
+| **Xteink X4 Pro** | ESP32-S3, Touch, SDMMC, 8MB PSRAM, USB Drive | `pio run -e x4-pro` | `pio run -e x4-pro -t upload` |
+| **Xteink X3 / X4 / Classic** | ESP32-C3, Physical Buttons, SPI SD | `pio run -e default` | `pio run -e default -t upload` |
+| **Seeed reTerminal Sticky** | ESP32-S3, Touch, SPI SD, 8MB PSRAM | `pio run -e sticky` | `pio run -e sticky -t upload` |
+| **Desktop Simulator** | Native macOS / Linux | `pio run -e simulator` | `pio run -e simulator -t run_simulator` |
 
-### 3. Run Automated Smoke Tests
+> **Firmware Binaries**: Compiled firmware binaries are saved to `.pio/build/<env>/firmware-<env>.bin` (e.g. `.pio/build/x4-pro/firmware-x4-pro.bin`), suitable for flashing with `esptool.py` or web flashers.
+
+### 3. Monitoring Serial Logs
+
+To view live debug output over USB-Serial:
+```sh
+pio device monitor
+# Or build, upload, and monitor in a single step:
+pio run -e x4-pro -t upload -t monitor
+```
+
+### 4. Run Automated Smoke Tests
 
 ```sh
 python3 ./scripts/run_simulator_smoke_test.py
