@@ -25,6 +25,7 @@
 #include "ReaderUtils.h"
 #include "SettingsList.h"
 #include "StablePageSelectionModel.h"
+#include "StarredBooksStore.h"
 #include "activities/reader/ControlsOptionsActivity.h"
 #include "activities/settings/StatusBarSettingsActivity.h"
 #include "components/DrawerHandle.h"
@@ -327,6 +328,7 @@ EpubReaderTouchMenuActivity::EpubReaderTouchMenuActivity(
       hasClippings(hasClippings),
       isCurrentPageBookmarked(isCurrentPageBookmarked),
       isBookCompleted(isBookCompleted),
+      isBookStarred(this->epub ? STARRED_BOOKS.isStarred(this->epub->getPath()) : false),
       showReadingPaceReset(showReadingPaceReset),
       automaticPageTurnActive(automaticPageTurnActive),
       autoPageTurnIntervalSeconds(std::clamp(autoPageTurnIntervalSeconds, READER_AUTO_PAGE_TURN_MIN_SECONDS,
@@ -1254,11 +1256,17 @@ void EpubReaderTouchMenuActivity::activateRow(const RowId row) {
     case RowId::SelectChapter:
       closeAndReturn(false, EpubReaderMenuAction::SELECT_CHAPTER, false);
       return;
+    case RowId::StartFromBeginning:
+      closeAndReturn(false, EpubReaderMenuAction::START_FROM_BEGINNING, false);
+      return;
     case RowId::GoToPercent:
       openPane(ReaderDrawerPane::Percent);
       return;
     case RowId::GoToStablePage:
       openPane(ReaderDrawerPane::StablePage);
+      return;
+    case RowId::GoToBookFolder:
+      closeAndReturn(false, EpubReaderMenuAction::GO_TO_BOOK_FOLDER, false);
       return;
     case RowId::AutoPageTurn:
       openPane(ReaderDrawerPane::AutoPageTurn);
@@ -1300,6 +1308,10 @@ void EpubReaderTouchMenuActivity::activateRow(const RowId row) {
     case RowId::ForceIndents:
     case RowId::EmbeddedStyle:
       toggleSetting(row);
+      return;
+    case RowId::StarToggle:
+      isBookStarred = !isBookStarred;
+      closeAndReturn(false, EpubReaderMenuAction::STAR_TOGGLE, false);
       return;
     case RowId::BookmarkToggle:
       isCurrentPageBookmarked = !isCurrentPageBookmarked;
@@ -2084,10 +2096,16 @@ const char* EpubReaderTouchMenuActivity::rowLabel(const RowId row) const {
       return tr(STR_IMAGES);
     case RowId::SelectChapter:
       return tr(STR_SELECT_CHAPTER);
+    case RowId::StartFromBeginning:
+      return tr(STR_START_FROM_BEGINNING);
     case RowId::GoToPercent:
       return tr(STR_GO_TO_PERCENT);
     case RowId::GoToStablePage:
       return tr(STR_GO_TO_STABLE_PAGE);
+    case RowId::GoToBookFolder:
+      return tr(STR_GO_TO_BOOK_FOLDER);
+    case RowId::StarToggle:
+      return isBookStarred ? tr(STR_REMOVE_STAR) : tr(STR_STAR_BOOK);
     case RowId::BookmarkToggle:
       return isCurrentPageBookmarked ? tr(STR_REMOVE_BOOKMARK) : tr(STR_ADD_BOOKMARK);
     case RowId::ViewBookmarks:
@@ -2213,6 +2231,7 @@ bool EpubReaderTouchMenuActivity::rowShowsNavigationCaret(const RowId row) const
   char value[64] = {};
   if (rowValue(row, value, sizeof(value)) != nullptr) return false;
   switch (row) {
+    case RowId::StarToggle:
     case RowId::BookmarkToggle:
     case RowId::ToggleCompleted:
     case RowId::Screenshot:
@@ -2223,6 +2242,8 @@ bool EpubReaderTouchMenuActivity::rowShowsNavigationCaret(const RowId row) const
     case RowId::DeleteBookmarks:
     case RowId::DeleteCache:
     case RowId::DeleteStats:
+    case RowId::StartFromBeginning:
+    case RowId::GoToBookFolder:
       return false;
     default:
       return true;

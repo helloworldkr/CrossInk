@@ -199,10 +199,10 @@ EpubReaderMenuActivity::EpubReaderMenuActivity(
     ReaderOptionsActivity::GlobalSettingsEditCallback endGlobalSettingsEditCallback, void* endGlobalSettingsEditContext,
     const char* dictionaryFontFamilyName, const uint8_t dictionaryFontPointSize, const bool hasDictionaryFontOverride,
     ReaderOptionsActivity::DictionaryFontChangedCallback dictionaryFontChangedCallback,
-    void* dictionaryFontChangedContext)
+    void* dictionaryFontChangedContext, const bool isBookStarred)
     : Activity("EpubReaderMenu", renderer, mappedInput),
       menuItems(buildMenuItems(hasFootnotes, hasBookmarks, hasClippings, isCurrentPageBookmarked, isBookCompleted,
-                               showReadingPaceReset, hasDictionary, stablePageCount > 0)),
+                               showReadingPaceReset, hasDictionary, stablePageCount > 0, isBookStarred)),
       title(title),
       pendingOrientation(currentOrientation),
       currentPage(currentPage),
@@ -224,6 +224,7 @@ EpubReaderMenuActivity::EpubReaderMenuActivity(
       hasDictionaryFontOverride(hasDictionaryFontOverride),
       dictionaryFontChangedCallback(dictionaryFontChangedCallback),
       dictionaryFontChangedContext(dictionaryFontChangedContext),
+      isBookStarred(isBookStarred),
       uiTarget(makeUiTarget(renderer)),
       app(uiTarget, uiTarget.deviceContext()) {
   if (dictionaryFontFamilyName) {
@@ -233,13 +234,13 @@ EpubReaderMenuActivity::EpubReaderMenuActivity(
 
 EpubReaderMenuActivity::TabMenuItems EpubReaderMenuActivity::buildMenuItems(
     bool hasFootnotes, bool hasBookmarks, bool hasClippings, bool isCurrentPageBookmarked, bool isBookCompleted,
-    bool showReadingPaceReset, bool hasDictionary, bool hasStablePageNumbers) {
+    bool showReadingPaceReset, bool hasDictionary, bool hasStablePageNumbers, bool isBookStarred) {
   TabMenuItems items;
   auto& mainItems = items[MAIN_TAB_INDEX];
   auto& bookmarkItems = items[BOOKMARKS_TAB_INDEX];
   auto& settingsItems = items[SETTINGS_TAB_INDEX];
 
-  mainItems.reserve(9 + (hasFootnotes ? 1u : 0u) + (hasDictionary ? 2u : 0u));
+  mainItems.reserve(11 + (hasFootnotes ? 1u : 0u) + (hasDictionary ? 2u : 0u));
   bookmarkItems.reserve(9 + (hasBookmarks ? 2u : 0u) + (hasClippings ? 1u : 0u));
   settingsItems.reserve(6);
 
@@ -251,10 +252,12 @@ EpubReaderMenuActivity::TabMenuItems EpubReaderMenuActivity::buildMenuItems(
     mainItems.push_back({MenuAction::LOOKUP_HISTORY, StrId::STR_LOOKUP_HISTORY});
   }
   mainItems.push_back({MenuAction::SELECT_CHAPTER, StrId::STR_SELECT_CHAPTER});
+  mainItems.push_back({MenuAction::START_FROM_BEGINNING, StrId::STR_START_FROM_BEGINNING});
   mainItems.push_back({MenuAction::GO_TO_PERCENT, StrId::STR_GO_TO_PERCENT});
   if (hasStablePageNumbers) {
     mainItems.push_back({MenuAction::GO_TO_STABLE_PAGE, StrId::STR_GO_TO_STABLE_PAGE});
   }
+  mainItems.push_back({MenuAction::GO_TO_BOOK_FOLDER, StrId::STR_GO_TO_BOOK_FOLDER});
   mainItems.push_back({MenuAction::AUTO_PAGE_TURN, StrId::STR_AUTO_TURN_INTERVAL_SECONDS});
   mainItems.push_back({MenuAction::READING_STATS, StrId::STR_READING_STATS});
   mainItems.push_back({MenuAction::READER_OPTIONS, StrId::STR_READER_OPTIONS});
@@ -262,6 +265,8 @@ EpubReaderMenuActivity::TabMenuItems EpubReaderMenuActivity::buildMenuItems(
   if (hasClippings) {
     bookmarkItems.push_back({MenuAction::VIEW_CLIPPINGS, StrId::STR_VIEW_CLIPPINGS});
   }
+  bookmarkItems.push_back(
+      {MenuAction::STAR_TOGGLE, isBookStarred ? StrId::STR_REMOVE_STAR : StrId::STR_STAR_BOOK});
   bookmarkItems.push_back(
       {MenuAction::BOOKMARK_TOGGLE, isCurrentPageBookmarked ? StrId::STR_REMOVE_BOOKMARK : StrId::STR_ADD_BOOKMARK});
   if (hasBookmarks) {

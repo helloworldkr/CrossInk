@@ -408,6 +408,10 @@ class EpubReaderActivity final : public Activity {
   static void saveGlobalSettingsForBookReader(void* ctx);
   static void beginGlobalSettingsEditForBookReader(void* ctx);
   static void endGlobalSettingsEditForBookReader(void* ctx);
+  // Jump to the very beginning of the book (spine 0, page 0).
+  void jumpToBeginning();
+  // Return to the folder containing this book in the file browser.
+  void goToBookFolder();
   // Jump to a percentage of the book (0.0-100.0, two decimals meaningful), mapping it to spine and page.
   void jumpToPercent(float percent);
   void jumpToStablePage(uint32_t page);

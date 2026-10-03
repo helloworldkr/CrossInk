@@ -16,6 +16,7 @@
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
 #include "RecentBooksStore.h"
+#include "StarredBooksStore.h"
 #include "activities/reader/BookReadingStats.h"
 #include "activities/reader/EpubReaderActivity.h"
 #include "activities/reader/GlobalReadingStats.h"
@@ -46,8 +47,10 @@ std::string bookStatsCachePath(const std::string& path) {
 std::vector<FileBrowserActionActivity::MenuItem> buildBookActionItems(const std::string& fullPath,
                                                                       const bool includeRemoveFromRecents) {
   std::vector<FileBrowserActionActivity::MenuItem> items;
-  items.reserve(includeRemoveFromRecents ? 7 : 6);
+  items.reserve(includeRemoveFromRecents ? 8 : 7);
   items.push_back({FileBrowserAction::Delete, StrId::STR_DELETE});
+  items.push_back({FileBrowserAction::ToggleStar,
+                   STARRED_BOOKS.isStarred(fullPath) ? StrId::STR_REMOVE_STAR : StrId::STR_STAR_BOOK});
   if (hasClearableBookCache(fullPath)) {
     items.push_back({FileBrowserAction::DeleteCache, StrId::STR_DELETE_CACHE});
   }
@@ -76,6 +79,7 @@ bool canSendNearby(const std::string& path) {
 }
 
 void clearFileMetadata(const std::string& fullPath) {
+  STARRED_BOOKS.removeStar(fullPath);
   if (FsHelpers::hasEpubExtension(fullPath)) {
     Epub(fullPath, "/.crosspoint").clearCache();
     BookmarkStore::deleteForFilePath(fullPath, "epub");

@@ -70,42 +70,53 @@ TEST(ReaderDrawerModel, CatalogOrderAndConditionalRowsMatchTouchDesign) {
   EXPECT_EQ(layout.items[3], ReaderDrawerCatalogItem::Images);
 
   const auto& minimalMore = minimal[static_cast<size_t>(ReaderDrawerTab::More)];
-  EXPECT_EQ(minimalMore.count, 3);
+  EXPECT_EQ(minimalMore.count, 5);
   EXPECT_EQ(minimalMore.items[0], ReaderDrawerCatalogItem::SelectChapter);
-  EXPECT_EQ(minimalMore.items[2], ReaderDrawerCatalogItem::AutoPageTurn);
+  EXPECT_EQ(minimalMore.items[1], ReaderDrawerCatalogItem::StartFromBeginning);
+  EXPECT_EQ(minimalMore.items[2], ReaderDrawerCatalogItem::GoToPercent);
+  EXPECT_EQ(minimalMore.items[3], ReaderDrawerCatalogItem::GoToBookFolder);
+  EXPECT_EQ(minimalMore.items[4], ReaderDrawerCatalogItem::AutoPageTurn);
 
   ReaderDrawerAvailability stableAvailable{};
   stableAvailable.hasStablePageNumbers = true;
   const ReaderDrawerCatalog stableCatalog = makeReaderDrawerCatalog(stableAvailable);
   const auto& stableMore = stableCatalog[static_cast<size_t>(ReaderDrawerTab::More)];
-  EXPECT_EQ(stableMore.count, 4);
-  EXPECT_EQ(stableMore.items[1], ReaderDrawerCatalogItem::GoToPercent);
-  EXPECT_EQ(stableMore.items[2], ReaderDrawerCatalogItem::GoToStablePage);
+  EXPECT_EQ(stableMore.count, 6);
+  EXPECT_EQ(stableMore.items[1], ReaderDrawerCatalogItem::StartFromBeginning);
+  EXPECT_EQ(stableMore.items[2], ReaderDrawerCatalogItem::GoToPercent);
+  EXPECT_EQ(stableMore.items[3], ReaderDrawerCatalogItem::GoToStablePage);
+  EXPECT_EQ(stableMore.items[4], ReaderDrawerCatalogItem::GoToBookFolder);
+  EXPECT_EQ(stableMore.items[5], ReaderDrawerCatalogItem::AutoPageTurn);
 
   const auto& minimalLocation = minimal[static_cast<size_t>(ReaderDrawerTab::Location)];
-  EXPECT_EQ(minimalLocation.count, 4);
-  EXPECT_EQ(minimalLocation.items[0], ReaderDrawerCatalogItem::BookmarkToggle);
-  EXPECT_EQ(minimalLocation.items[3], ReaderDrawerCatalogItem::DisplayQr);
+  EXPECT_EQ(minimalLocation.count, 5);
+  EXPECT_EQ(minimalLocation.items[0], ReaderDrawerCatalogItem::StarToggle);
+  EXPECT_EQ(minimalLocation.items[1], ReaderDrawerCatalogItem::BookmarkToggle);
+  EXPECT_EQ(minimalLocation.items[4], ReaderDrawerCatalogItem::DisplayQr);
 
   const ReaderDrawerCatalog complete = makeReaderDrawerCatalog({true, true, true, true, true, true});
   const auto& more = complete[static_cast<size_t>(ReaderDrawerTab::More)];
-  EXPECT_EQ(more.count, 7);
+  EXPECT_EQ(more.count, 9);
   EXPECT_EQ(more.items[0], ReaderDrawerCatalogItem::Lookup);
   EXPECT_EQ(more.items[1], ReaderDrawerCatalogItem::LookupHistory);
   EXPECT_EQ(more.items[2], ReaderDrawerCatalogItem::SelectChapter);
-  EXPECT_EQ(more.items[3], ReaderDrawerCatalogItem::GoToPercent);
-  EXPECT_EQ(more.items[4], ReaderDrawerCatalogItem::GoToStablePage);
-  EXPECT_EQ(more.items[5], ReaderDrawerCatalogItem::AutoPageTurn);
+  EXPECT_EQ(more.items[3], ReaderDrawerCatalogItem::StartFromBeginning);
+  EXPECT_EQ(more.items[4], ReaderDrawerCatalogItem::GoToPercent);
+  EXPECT_EQ(more.items[5], ReaderDrawerCatalogItem::GoToStablePage);
+  EXPECT_EQ(more.items[6], ReaderDrawerCatalogItem::GoToBookFolder);
+  EXPECT_EQ(more.items[7], ReaderDrawerCatalogItem::AutoPageTurn);
+  EXPECT_EQ(more.items[8], ReaderDrawerCatalogItem::Footnotes);
 
   const auto& location = complete[static_cast<size_t>(ReaderDrawerTab::Location)];
-  EXPECT_EQ(location.count, 7);
-  EXPECT_EQ(location.items[0], ReaderDrawerCatalogItem::BookmarkToggle);
-  EXPECT_EQ(location.items[1], ReaderDrawerCatalogItem::ViewBookmarks);
-  EXPECT_EQ(location.items[2], ReaderDrawerCatalogItem::DeleteBookmarks);
-  EXPECT_EQ(location.items[3], ReaderDrawerCatalogItem::SaveClipping);
-  EXPECT_EQ(location.items[4], ReaderDrawerCatalogItem::ViewClippings);
-  EXPECT_EQ(location.items[5], ReaderDrawerCatalogItem::Screenshot);
-  EXPECT_EQ(location.items[6], ReaderDrawerCatalogItem::DisplayQr);
+  EXPECT_EQ(location.count, 8);
+  EXPECT_EQ(location.items[0], ReaderDrawerCatalogItem::StarToggle);
+  EXPECT_EQ(location.items[1], ReaderDrawerCatalogItem::BookmarkToggle);
+  EXPECT_EQ(location.items[2], ReaderDrawerCatalogItem::ViewBookmarks);
+  EXPECT_EQ(location.items[3], ReaderDrawerCatalogItem::DeleteBookmarks);
+  EXPECT_EQ(location.items[4], ReaderDrawerCatalogItem::SaveClipping);
+  EXPECT_EQ(location.items[5], ReaderDrawerCatalogItem::ViewClippings);
+  EXPECT_EQ(location.items[6], ReaderDrawerCatalogItem::Screenshot);
+  EXPECT_EQ(location.items[7], ReaderDrawerCatalogItem::DisplayQr);
 
   const auto& settings = complete[static_cast<size_t>(ReaderDrawerTab::Settings)];
   EXPECT_EQ(settings.count, 9);

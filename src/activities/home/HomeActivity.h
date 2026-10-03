@@ -95,6 +95,7 @@ class HomeActivity final : public Activity {
   void onFileBrowserOpen();
   void onContinueReading();
   void onRecentsOpen();
+  void onStarredBooksOpen();
   void onSettingsOpen();
   void onFileTransferOpen();
   void onOpdsBrowserOpen();

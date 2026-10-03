@@ -16,6 +16,9 @@
 - Files can be renamed from the File Browser action menu while keeping reading progress, bookmarks, clippings, and recent-book entries linked to the new name.
 - Firmware builds can include only selected UI languages to reduce flash usage while preserving English fallback.
 - **Dark Mode Schedule**: Automatically turn on dark mode at night and return to normal mode in the morning with configurable Start and End times under Settings > Display > Dark Mode Schedule (on devices with an RTC). Supports wake application and runtime transitions while reading.
+- **Start from Beginning**: Added a one-click option in the reader menu and touch drawer to immediately restart reading from the very beginning of the book (spine 0, page 0).
+- **Go to Book Folder**: Added an option in the reader menu and bottom swipe-up drawer to immediately exit back to the folder containing the current book in the file browser with the book highlighted and reading progress saved.
+- **Starred Books**: Mark any book with a star (favorite) directly from the reader menu, touch bottom drawer, or book action menus across the system (File Browser, Recent Books, and Recent Books Grid). Easily access all starred books from a dedicated Starred Books (★) button on the Home screen.
 
 ### Changed
 

@@ -38,7 +38,7 @@ class EpubReaderMenuActivity final : public Activity {
       void* endGlobalSettingsEditContext = nullptr, const char* dictionaryFontFamilyName = nullptr,
       uint8_t dictionaryFontPointSize = 0, bool hasDictionaryFontOverride = false,
       ReaderOptionsActivity::DictionaryFontChangedCallback dictionaryFontChangedCallback = nullptr,
-      void* dictionaryFontChangedContext = nullptr);
+      void* dictionaryFontChangedContext = nullptr, const bool isBookStarred = false);
 
   void onEnter() override;
   void onExit() override;
@@ -67,7 +67,7 @@ class EpubReaderMenuActivity final : public Activity {
 
   static TabMenuItems buildMenuItems(bool hasFootnotes, bool hasBookmarks, bool hasClippings,
                                      bool isCurrentPageBookmarked, bool isBookCompleted, bool showReadingPaceReset,
-                                     bool hasDictionary, bool hasStablePageNumbers);
+                                     bool hasDictionary, bool hasStablePageNumbers, bool isBookStarred = false);
   [[nodiscard]] const std::vector<MenuItem>& activeMenuItems() const;
   [[nodiscard]] size_t activeTabIndex() const { return static_cast<size_t>(activeTab); }
   void cycleActiveTab();
@@ -122,6 +122,7 @@ class EpubReaderMenuActivity final : public Activity {
   void* dictionaryFontChangedContext = nullptr;
   bool settingsChanged = false;
   ReaderSettingsChangeMask changeMask = ReaderSettingsChangeMask::None;
+  bool isBookStarred = false;
 
   MenuResult makeMenuResult(int action) const;
 

@@ -93,6 +93,7 @@ class EpubReaderTouchMenuActivity final : public Activity {
   bool hasClippings = false;
   bool isCurrentPageBookmarked = false;
   bool isBookCompleted = false;
+  bool isBookStarred = false;
   bool showReadingPaceReset = false;
   bool settingsChanged = false;
   bool didChangeSettings = false;

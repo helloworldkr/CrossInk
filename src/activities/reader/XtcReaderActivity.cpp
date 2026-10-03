@@ -23,6 +23,7 @@
 #include "QuickActions.h"
 #include "ReaderUtils.h"
 #include "RecentBooksStore.h"
+#include "StarredBooksStore.h"
 #include "XtcReaderChapterSelectionActivity.h"
 #include "XtcReaderMenuActivity.h"
 #include "activities/boot_sleep/SleepCoverAssets.h"
@@ -178,7 +179,8 @@ void XtcReaderActivity::openReaderMenu() {
 
   pauseReadingStatsTimer("reader_menu");
   startActivityForResult(
-      std::make_unique<XtcReaderMenuActivity>(renderer, mappedInput, std::move(title), hasChapters, stats.isCompleted),
+      std::make_unique<XtcReaderMenuActivity>(renderer, mappedInput, std::move(title), hasChapters, stats.isCompleted,
+                                              xtc ? STARRED_BOOKS.isStarred(xtc->getPath()) : false),
       [this](const ActivityResult& result) {
         const auto* menu = std::get_if<MenuResult>(&result.data);
         if (result.isCancelled || menu == nullptr) {
@@ -939,9 +941,31 @@ void XtcReaderActivity::onReaderMenuConfirm(const int action) {
     case XtcReaderMenuActivity::MenuAction::SELECT_CHAPTER:
       openChapterSelection();
       break;
+    case XtcReaderMenuActivity::MenuAction::START_FROM_BEGINNING: {
+      RenderLock lock(*this);
+      currentPage = 0;
+      saveProgress(currentPage);
+      resumeReadingStatsTimer("start_from_beginning");
+      requestUpdate();
+      break;
+    }
+    case XtcReaderMenuActivity::MenuAction::STAR_TOGGLE: {
+      if (xtc) {
+        const bool starred = STARRED_BOOKS.toggleStar(
+            xtc->getPath(), xtc->getTitle(), xtc->getAuthor(), xtc->getThumbBmpPath());
+        drawToast(renderer, starred ? tr(STR_BOOK_STARRED) : tr(STR_STAR_REMOVED));
+      }
+      requestUpdate();
+      break;
+    }
     case XtcReaderMenuActivity::MenuAction::READING_STATS:
       openReadingStats();
       break;
+    case XtcReaderMenuActivity::MenuAction::GO_TO_BOOK_FOLDER: {
+      saveProgress(currentPage);
+      activityManager.goToFileBrowser(xtc ? xtc->getPath() : "");
+      return;
+    }
     case XtcReaderMenuActivity::MenuAction::TOGGLE_COMPLETED:
       setBookCompleted(!stats.isCompleted);
       resumeReadingStatsTimer("toggle_completed_return");

@@ -20,6 +20,7 @@
 #include "MappedInputManager.h"
 #include "RecentBookProgress.h"
 #include "RecentBooksStore.h"
+#include "StarredBooksStore.h"
 #include "activities/reader/EpubReaderActivity.h"
 #include "activities/util/ConfirmationActivity.h"
 #include "activities/util/OptionSelectionActivity.h"
@@ -625,6 +626,12 @@ void RecentBooksGridActivity::showBookActionMenu(const int bookIndex, const bool
           case FileBrowserAction::RemoveFromRecents:
             promptRemoveBook(book.path, book.title);
             return;
+          case FileBrowserAction::ToggleStar: {
+            const bool starred = STARRED_BOOKS.toggleStar(book.path, book.title, book.author, book.coverBmpPath);
+            BookActions::drawToast(renderer, starred ? tr(STR_BOOK_STARRED) : tr(STR_STAR_REMOVED));
+            reloadAfterBookAction();
+            return;
+          }
           case FileBrowserAction::SendNearby:
             activityManager.goToNearbyBookSend(book.path, false);
             return;

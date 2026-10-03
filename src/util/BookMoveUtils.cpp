@@ -12,6 +12,7 @@
 #include "ClippingStore.h"
 #include "CrossPointState.h"
 #include "RecentBooksStore.h"
+#include "StarredBooksStore.h"
 
 namespace {
 constexpr char READ_FOLDER[] = "/Read";
@@ -238,6 +239,8 @@ bool migrateMovedEpubState(const std::string& oldPath, const std::string& newPat
     RECENT_BOOKS.removeByPath(oldPath);
     RECENT_BOOKS.removeByPath(newPath);
   }
+
+  (void)STARRED_BOOKS.updatePath(oldPath, newPath, oldCachePath, newCachePath);
 
   if (APP_STATE.openEpubPath == oldPath) {
     APP_STATE.openEpubPath = newPath;

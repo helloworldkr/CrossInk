@@ -6,9 +6,11 @@
 
 enum class EpubReaderMenuAction : uint8_t {
   SELECT_CHAPTER,
+  START_FROM_BEGINNING,
   FOOTNOTES,
   GO_TO_PERCENT,
   GO_TO_STABLE_PAGE,
+  GO_TO_BOOK_FOLDER,
   AUTO_PAGE_TURN,
   ROTATE_SCREEN,
   SCREENSHOT,
@@ -33,6 +35,7 @@ enum class EpubReaderMenuAction : uint8_t {
   LOOKUP_HISTORY,
   SET_BOOK_DICTIONARY,
   STATUS_BAR_SETTINGS,
+  STAR_TOGGLE,
 };
 
 enum class ReaderDrawerTab : uint8_t { Font = 0, Layout = 1, More = 2, Location = 3, Settings = 4, Count };
@@ -73,8 +76,11 @@ enum class ReaderDrawerCatalogItem : uint8_t {
   EmbeddedStyle,
   Images,
   SelectChapter,
+  StartFromBeginning,
   GoToPercent,
   GoToStablePage,
+  GoToBookFolder,
+  StarToggle,
   BookmarkToggle,
   ViewBookmarks,
   Screenshot,
@@ -146,12 +152,15 @@ constexpr ReaderDrawerCatalog makeReaderDrawerCatalog(const ReaderDrawerAvailabi
     more.add(ReaderDrawerCatalogItem::LookupHistory);
   }
   more.add(ReaderDrawerCatalogItem::SelectChapter);
+  more.add(ReaderDrawerCatalogItem::StartFromBeginning);
   more.add(ReaderDrawerCatalogItem::GoToPercent);
   if (available.hasStablePageNumbers) more.add(ReaderDrawerCatalogItem::GoToStablePage);
+  more.add(ReaderDrawerCatalogItem::GoToBookFolder);
   more.add(ReaderDrawerCatalogItem::AutoPageTurn);
   if (available.hasFootnotes) more.add(ReaderDrawerCatalogItem::Footnotes);
 
   auto& location = catalog[static_cast<size_t>(ReaderDrawerTab::Location)];
+  location.add(ReaderDrawerCatalogItem::StarToggle);
   location.add(ReaderDrawerCatalogItem::BookmarkToggle);
   if (available.hasBookmarks) {
     location.add(ReaderDrawerCatalogItem::ViewBookmarks);

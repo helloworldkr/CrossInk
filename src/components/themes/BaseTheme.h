@@ -144,7 +144,8 @@ enum UIIcon {
   Library,
   Wifi,
   Hotspot,
-  Chart
+  Chart,
+  Star
 };
 
 // Default theme implementation (Classic Theme)

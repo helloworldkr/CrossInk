@@ -23,6 +23,7 @@
 #include "CrossPointState.h"
 #include "FileBrowserActionActivity.h"
 #include "MappedInputManager.h"
+#include "StarredBooksStore.h"
 #include "activities/boot_sleep/ImageFolderIndex.h"
 #include "activities/reader/EpubReaderActivity.h"
 #include "activities/settings/SettingsActivity.h"
@@ -563,6 +564,7 @@ void FileBrowserActivity::showDirectoryActionMenu(const std::string& entry, bool
                              case FileBrowserAction::ResetReaderSettings:
                              case FileBrowserAction::SendNearby:
                              case FileBrowserAction::Rename:
+                             case FileBrowserAction::ToggleStar:
                                return;
                            }
                          });
@@ -778,6 +780,12 @@ void FileBrowserActivity::showFileActionMenu(const std::string& entry, bool igno
             }
             requestUpdate(true);
             return;
+          case FileBrowserAction::ToggleStar: {
+            const bool starred = STARRED_BOOKS.toggleStar(fullPath);
+            BookActions::drawToast(renderer, starred ? tr(STR_BOOK_STARRED) : tr(STR_STAR_REMOVED));
+            requestUpdate();
+            return;
+          }
           case FileBrowserAction::EpubRenderMode: {
             const uint8_t currentIndex =
                 BookActions::epubRenderModeDisplayIndex(EpubReaderActivity::loadBookRenderMode(fullPath));

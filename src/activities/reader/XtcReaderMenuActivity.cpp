@@ -26,21 +26,27 @@ constexpr fui::ActionId kActionRow = 1;
 }  // namespace
 
 XtcReaderMenuActivity::XtcReaderMenuActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, std::string title,
-                                             const bool hasChapters, const bool isBookCompleted)
+                                             const bool hasChapters, const bool isBookCompleted,
+                                             const bool isBookStarred)
     : Activity("XtcReaderMenu", renderer, mappedInput),
       title(std::move(title)),
-      items(buildMenuItems(hasChapters, isBookCompleted, mappedInput.hasTouchHardware())),
+      items(buildMenuItems(hasChapters, isBookCompleted, mappedInput.hasTouchHardware(), isBookStarred)),
       ui(renderer) {}
 
 std::vector<XtcReaderMenuActivity::MenuItem> XtcReaderMenuActivity::buildMenuItems(const bool hasChapters,
                                                                                    const bool isBookCompleted,
-                                                                                   const bool hasTouch) {
+                                                                                   const bool hasTouch,
+                                                                                   const bool isBookStarred) {
   std::vector<MenuItem> menuItems;
-  menuItems.reserve(6 + (hasTouch ? 1u : 0u));
+  menuItems.reserve(9 + (hasTouch ? 1u : 0u));
   if (hasChapters) {
     menuItems.push_back({MenuAction::SELECT_CHAPTER, StrId::STR_SELECT_CHAPTER});
   }
+  menuItems.push_back({MenuAction::START_FROM_BEGINNING, StrId::STR_START_FROM_BEGINNING});
+  menuItems.push_back(
+      {MenuAction::STAR_TOGGLE, isBookStarred ? StrId::STR_REMOVE_STAR : StrId::STR_STAR_BOOK});
   menuItems.push_back({MenuAction::READING_STATS, StrId::STR_READING_STATS});
+  menuItems.push_back({MenuAction::GO_TO_BOOK_FOLDER, StrId::STR_GO_TO_BOOK_FOLDER});
   menuItems.push_back(
       {MenuAction::TOGGLE_COMPLETED, isBookCompleted ? StrId::STR_MARK_UNFINISHED : StrId::STR_MARK_FINISHED});
   menuItems.push_back({MenuAction::DELETE_STATS, StrId::STR_DELETE_BOOK_STATS});

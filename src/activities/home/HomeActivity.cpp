@@ -59,6 +59,7 @@ enum class HomeMenuAction {
   BrowseFiles,
   ContinueReading,
   RecentBooks,
+  StarredBooks,
   OpdsBrowser,
   ReadingStats,
   Bookmarks,
@@ -74,7 +75,7 @@ struct HomeMenuEntry {
 };
 
 struct HomeMenuEntries {
-  static constexpr int kCapacity = 12;
+  static constexpr int kCapacity = 14;
   std::array<HomeMenuEntry, kCapacity> entries{};
   int count = 0;
 
@@ -269,6 +270,7 @@ void appendHomeMenuItems(HomeMenuEntries& items, bool hasOpdsServers, bool hasRe
                          bool hasClippings) {
   items.push({tr(STR_BROWSE_FILES), Folder, HomeMenuAction::BrowseFiles});
   items.push({tr(STR_MENU_RECENT_BOOKS), Recent, HomeMenuAction::RecentBooks});
+  items.push({tr(STR_STARRED_BOOKS), Star, HomeMenuAction::StarredBooks});
   items.push({"Apps", Folder, HomeMenuAction::Apps});
 
   if (hasOpdsServers) {
@@ -294,6 +296,7 @@ HomeMenuEntries buildHomeMenuItems(bool hasOpdsServers, bool hasReadingStats, bo
 HomeMenuEntries buildMinimalMenuItems(bool hasOpdsServers, bool hasReadingStats, bool hasBookmarks, bool hasClippings) {
   HomeMenuEntries items;
   items.push({tr(STR_MENU_RECENT_BOOKS), Recent, HomeMenuAction::RecentBooks});
+  items.push({tr(STR_STARRED_BOOKS), Star, HomeMenuAction::StarredBooks});
   items.push({"Apps", Folder, HomeMenuAction::Apps});
 
   if (hasOpdsServers) {
@@ -1559,6 +1562,9 @@ void HomeActivity::loop() {
           case HomeMenuAction::RecentBooks:
             onRecentsOpen();
             break;
+          case HomeMenuAction::StarredBooks:
+            onStarredBooksOpen();
+            break;
           case HomeMenuAction::OpdsBrowser:
             onOpdsBrowserOpen();
             break;
@@ -1806,6 +1812,9 @@ void HomeActivity::loop() {
         break;
       case HomeMenuAction::RecentBooks:
         onRecentsOpen();
+        break;
+      case HomeMenuAction::StarredBooks:
+        onStarredBooksOpen();
         break;
       case HomeMenuAction::OpdsBrowser:
         onOpdsBrowserOpen();
@@ -2380,6 +2389,8 @@ void HomeActivity::onContinueReading() {
 }
 
 void HomeActivity::onRecentsOpen() { activityManager.goToRecentBooks(); }
+
+void HomeActivity::onStarredBooksOpen() { activityManager.goToStarredBooks(); }
 
 void HomeActivity::onSettingsOpen() { activityManager.goToSettings(); }
 

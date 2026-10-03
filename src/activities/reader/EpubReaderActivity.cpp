@@ -56,6 +56,7 @@
 #include "QuickActions.h"
 #include "ReaderUtils.h"
 #include "RecentBooksStore.h"
+#include "StarredBooksStore.h"
 #include "SdCardFontSystem.h"
 #include "SilentRestart.h"
 #include "WordRef.h"
@@ -2429,7 +2430,8 @@ void EpubReaderActivity::openReaderMenu() {
         saveReaderOptionsForBook, this, saveGlobalSettingsForBookReader, this, beginGlobalSettingsEditForBookReader,
         this, stableCurrentPage, stablePageCount, endGlobalSettingsEditForBookReader, this,
         bookSettings.dictionarySdFontFamilyName, bookSettings.dictionaryFontPointSize,
-        bookSettings.hasDictionaryFontOverride, saveDictionaryFontForBookReader, this);
+        bookSettings.hasDictionaryFontOverride, saveDictionaryFontForBookReader, this,
+        STARRED_BOOKS.isStarred(epub->getPath()));
     if (!menuActivity) {
       LOG_ERR("ERS", "Could not allocate reader menu");
       resumeReadingPaceTimer("reader_menu_oom");
@@ -2494,6 +2496,14 @@ void EpubReaderActivity::openReaderMenu() {
     }
     resumeReadingPaceTimer("reader_menu_return");
     if (!result.isCancelled) {
+      if (menu->action == static_cast<int>(EpubReaderMenuAction::START_FROM_BEGINNING)) {
+        jumpToBeginning();
+        return;
+      }
+      if (menu->action == static_cast<int>(EpubReaderMenuAction::GO_TO_BOOK_FOLDER)) {
+        goToBookFolder();
+        return;
+      }
       if (menu->action == static_cast<int>(EpubReaderMenuAction::GO_TO_PERCENT) && menu->drawerValue >= 0) {
         // The touch drawer's Percent pane reports centipercent (see EpubReaderTouchMenuActivity::percent).
         jumpToPercent(static_cast<float>(menu->drawerValue) / 100.0f);
@@ -2515,6 +2525,7 @@ void EpubReaderActivity::openReaderMenu() {
 #if CROSSINK_APP_CAP_TOUCH
       if (shouldReopenTouchReaderDrawer(menu->reopenDrawer, mappedInput.hasTouchHardware()) &&
           (action == EpubReaderMenuAction::BOOKMARK_TOGGLE || action == EpubReaderMenuAction::TOGGLE_COMPLETED ||
+           action == EpubReaderMenuAction::STAR_TOGGLE ||
            action == EpubReaderMenuAction::RESET_READING_PACE)) {
         openReaderMenu();
       }
@@ -3282,6 +3293,49 @@ bool EpubReaderActivity::handleTwoFingerSwipeAction(const CrossPointSettings::TW
   }
 }
 
+// Jump to the very beginning of the book (spine 0, page 0) in one click.
+void EpubReaderActivity::jumpToBeginning() {
+  pageLoadRetryCount = 0;
+  if (!epub) {
+    return;
+  }
+
+  clearPendingManualPageTurns();
+
+  {
+    RenderLock lock(*this);
+    clearFootnotePreviewState();
+    currentSpineIndex = 0;
+    pendingAnchor.clear();
+    pendingSpineProgress = 0.0f;
+    pendingPercentJump = false;
+    pendingPageJump.reset();
+    pendingReferenceUnitOffset.reset();
+    pendingReferenceUnitCount = 0;
+    pendingResolvedReferencePage.reset();
+    pendingParagraphIndex = UINT16_MAX;
+    nextPageNumber = 0;
+    section.reset();
+  }
+
+  completionPromptShown = false;
+  completionPromptQueued = false;
+  armReadingPaceWarmup("beginning_jump");
+  pauseReadingPaceTimer("beginning_jump");
+  requestUpdate();
+}
+
+void EpubReaderActivity::goToBookFolder() {
+  if (epub) {
+    const int page = section ? section->currentPage : nextPageNumber;
+    const int pageCount = section ? section->estimatedTotalPages() : cachedChapterTotalPageCount;
+    saveProgress(currentSpineIndex, page, pageCount);
+    activityManager.goToFileBrowser(epub->getPath());
+    return;
+  }
+  activityManager.goToFileBrowser();
+}
+
 // Translate an absolute percent into a spine index plus a normalized position
 // within that spine so we can jump after the section is loaded.
 void EpubReaderActivity::jumpToPercent(float percent) {
@@ -3652,6 +3706,14 @@ void EpubReaderActivity::onReaderMenuConfirm(EpubReaderMenuActivity::MenuAction 
                              });
       break;
     }
+    case EpubReaderMenuActivity::MenuAction::START_FROM_BEGINNING: {
+      jumpToBeginning();
+      break;
+    }
+    case EpubReaderMenuActivity::MenuAction::GO_TO_BOOK_FOLDER: {
+      goToBookFolder();
+      break;
+    }
     case EpubReaderMenuActivity::MenuAction::GO_TO_STABLE_PAGE:
       break;
     case EpubReaderMenuActivity::MenuAction::DISPLAY_QR: {
@@ -3969,6 +4031,13 @@ void EpubReaderActivity::onReaderMenuConfirm(EpubReaderMenuActivity::MenuAction 
       if (replacementResume) APP_STATE.setPendingOverlayResume(*replacementResume);
       pauseReadingPaceTimer("nearby_position_sync");
       activityManager.replaceActivity(std::move(syncActivity));
+      break;
+    }
+    case EpubReaderMenuActivity::MenuAction::STAR_TOGGLE: {
+      const bool starred = STARRED_BOOKS.toggleStar(
+          epub->getPath(), epub->getTitle(), epub->getAuthor(), epub->getThumbBmpPath());
+      drawToast(renderer, starred ? tr(STR_BOOK_STARRED) : tr(STR_STAR_REMOVED));
+      requestUpdate();
       break;
     }
     case EpubReaderMenuActivity::MenuAction::BOOKMARK_TOGGLE: {
