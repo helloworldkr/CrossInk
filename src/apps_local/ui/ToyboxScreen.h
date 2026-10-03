@@ -42,7 +42,7 @@ namespace toybox {
 // three buttons, and the only reason that took minutes rather than an afternoon
 // is that the buffer records overflow and toybox::reportOverflow logs it. Raise
 // this, do not trim a screen to fit it.
-constexpr size_t kMaxInteractions = 48;
+constexpr size_t kMaxInteractions = 64;
 
 // The hit table, plus the one thing the SDK buffer cannot know: whether the
 // panel has actually SHOWN the table being routed against.

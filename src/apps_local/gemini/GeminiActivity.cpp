@@ -193,6 +193,8 @@ void GeminiActivity::resetChat() {
   history_.clear();
   currentPrompt_.clear();
   draftPrompt_.clear();
+  shifted_ = false;
+  symbols_ = false;
   fullResponseText_.clear();
   currentPage_ = 0;
   totalPages_ = 1;
@@ -257,11 +259,11 @@ void GeminiActivity::askPrompt(const std::string& prompt) {
   requestUpdate();
 }
 
-void GeminiActivity::openKeyboardForPrompt(const std::string& prefill) {
+void GeminiActivity::openKeyboardForPrompt(const std::string& prefill, bool autoSend) {
   auto keyboard = makeUniqueNoThrow<KeyboardEntryActivity>(renderer, mappedInput, "ASK GEMINI", prefill, 160);
   if (!keyboard) return;
 
-  startActivityForResult(std::move(keyboard), [this](const ActivityResult& result) {
+  startActivityForResult(std::move(keyboard), [this, autoSend](const ActivityResult& result) {
     interactionsReady_ = false;
     if (result.isCancelled) {
       requestUpdate();
@@ -270,7 +272,13 @@ void GeminiActivity::openKeyboardForPrompt(const std::string& prefill) {
     const auto& entered = std::get<KeyboardResult>(result.data);
     if (!entered.text.empty()) {
       draftPrompt_ = entered.text;
-      askPrompt(entered.text);
+      if (autoSend) {
+        askPrompt(entered.text);
+      } else {
+        requestUpdate();
+      }
+    } else {
+      requestUpdate();
     }
   });
 }
@@ -394,6 +402,77 @@ void GeminiActivity::openWifiSelection() {
                          });
 }
 
+void GeminiActivity::openSettingsMenu() {
+  std::vector<std::string> options = {
+      "Model: " + modelName_,
+      WiFi.status() == WL_CONNECTED ? ("Wi-Fi: " + std::string(WiFi.SSID().c_str())) : "Connect to Wi-Fi",
+      tokenInfo_.isFound ? "Update API Key (Ready)" : "Enter Gemini API Key",
+      "Clear Draft Prompt",
+      "New Chat (Reset Session)",
+  };
+
+  auto activity = makeUniqueNoThrow<OptionSelectionActivity>(
+      renderer, mappedInput, "GeminiSettings", StrId::STR_SETTINGS_TITLE, options, 0, false, true);
+  if (!activity) return;
+
+  startActivityForResult(std::move(activity), [this](const ActivityResult& result) {
+    interactionsReady_ = false;
+    if (result.isCancelled) {
+      requestUpdate();
+      return;
+    }
+    const auto& sel = std::get<OptionSelectionResult>(result.data);
+    if (sel.index == 0) {
+      openModelSelection();
+    } else if (sel.index == 1) {
+      openWifiSelection();
+    } else if (sel.index == 2) {
+      openKeyboardForToken();
+    } else if (sel.index == 3) {
+      draftPrompt_.clear();
+      requestUpdate();
+    } else if (sel.index == 4) {
+      resetChat();
+    }
+  });
+}
+
+void GeminiActivity::openQuickPromptsSelection() {
+  std::vector<std::string> options = {
+      "Summarize key ideas",
+      "Explain simply (ELI5)",
+      "Translate to clear English",
+      "List 5 key takeaways",
+      "Brainstorm ideas & solutions",
+      "Find counter-arguments & flaws",
+  };
+
+  auto activity = makeUniqueNoThrow<OptionSelectionActivity>(
+      renderer, mappedInput, "GeminiQuickPrompts", StrId::STR_SELECT, options, 0, false, true);
+  if (!activity) return;
+
+  startActivityForResult(std::move(activity), [this, options](const ActivityResult& result) {
+    interactionsReady_ = false;
+    if (result.isCancelled) {
+      requestUpdate();
+      return;
+    }
+    const auto& sel = std::get<OptionSelectionResult>(result.data);
+    if (sel.index < options.size()) {
+      const std::string& choice = options[sel.index];
+      if (draftPrompt_.empty()) {
+        draftPrompt_ = choice;
+      } else {
+        draftPrompt_ = choice + ": " + draftPrompt_;
+      }
+      if (draftPrompt_.size() > 200) {
+        draftPrompt_.resize(200);
+      }
+    }
+    requestUpdate();
+  });
+}
+
 void GeminiActivity::saveResponseToNotes() {
   if (fullResponseText_.empty()) return;
 
@@ -478,11 +557,11 @@ void GeminiActivity::loop() {
       if (!draftPrompt_.empty()) {
         askPrompt(draftPrompt_);
       } else {
-        openKeyboardForPrompt("");
+        openKeyboardForPrompt("", true);
       }
       return;
     } else if (state_ == State::Response) {
-      openKeyboardForPrompt("");
+      openKeyboardForPrompt("", true);
       return;
     }
   }
@@ -551,17 +630,69 @@ void GeminiActivity::loop() {
       if (!draftPrompt_.empty()) {
         askPrompt(draftPrompt_);
       } else {
-        openKeyboardForPrompt("");
+        openKeyboardForPrompt("", true);
       }
       return;
     case geminiui::ActionEditPrompt:
-      openKeyboardForPrompt(draftPrompt_);
+      openKeyboardForPrompt(draftPrompt_, false);
+      return;
+    case geminiui::ActionOpenSettings:
+      openSettingsMenu();
       return;
     case geminiui::ActionClearPrompt:
       draftPrompt_.clear();
       interactionsReady_ = false;
       requestUpdate();
       return;
+    case geminiui::ActionQuickPrompts:
+      openQuickPromptsSelection();
+      return;
+    case geminiui::ActionKeyChar: {
+      char c = static_cast<char>(action.value);
+      if (c != 0 && draftPrompt_.size() < 200) {
+        draftPrompt_ += c;
+        if (shifted_) {
+          shifted_ = false;
+        }
+        interactionsReady_ = false;
+        requestUpdate();
+      }
+      return;
+    }
+    case geminiui::ActionKeySpace: {
+      if (draftPrompt_.size() < 200) {
+        draftPrompt_ += ' ';
+        interactionsReady_ = false;
+        requestUpdate();
+      }
+      return;
+    }
+    case geminiui::ActionKeyShift: {
+      shifted_ = !shifted_;
+      interactionsReady_ = false;
+      requestUpdate();
+      return;
+    }
+    case geminiui::ActionKeyMode: {
+      symbols_ = !symbols_;
+      shifted_ = false;
+      interactionsReady_ = false;
+      requestUpdate();
+      return;
+    }
+    case geminiui::ActionKeyDelete: {
+      if (!draftPrompt_.empty()) {
+        while (!draftPrompt_.empty() && (static_cast<uint8_t>(draftPrompt_.back()) & 0xC0) == 0x80) {
+          draftPrompt_.pop_back();
+        }
+        if (!draftPrompt_.empty()) {
+          draftPrompt_.pop_back();
+        }
+        interactionsReady_ = false;
+        requestUpdate();
+      }
+      return;
+    }
     case geminiui::ActionNewChat:
       resetChat();
       return;
@@ -623,6 +754,8 @@ void GeminiActivity::render(RenderLock&&) {
       model.maskedToken = gemini::maskToken(tokenInfo_.token);
       model.modelName = modelName_;
       model.draftPrompt = draftPrompt_;
+      model.shifted = shifted_;
+      model.symbols = symbols_;
       geminiui::drawWelcome(screen, model);
       break;
     }

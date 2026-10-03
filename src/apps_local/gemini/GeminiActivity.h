@@ -41,10 +41,12 @@ class GeminiActivity final : public Activity {
   };
 
   void askPrompt(const std::string& prompt);
-  void openKeyboardForPrompt(const std::string& prefill = "");
+  void openKeyboardForPrompt(const std::string& prefill = "", bool autoSend = false);
   void openKeyboardForToken();
   void openModelSelection();
   void openWifiSelection();
+  void openSettingsMenu();
+  void openQuickPromptsSelection();
   void saveResponseToNotes();
   void resetChat();
 
@@ -56,6 +58,8 @@ class GeminiActivity final : public Activity {
   std::vector<gemini::Message> history_;
   std::string currentPrompt_;
   std::string draftPrompt_;
+  bool shifted_ = false;
+  bool symbols_ = false;
   std::string fullResponseText_;
   int currentPage_ = 0;
   int totalPages_ = 1;

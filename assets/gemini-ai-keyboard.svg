@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 860" width="540" height="860">
+  <defs>
+    <filter id="shadow" x="-5%" y="-3%" width="110%" height="108%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Device Outer Bezel (Xteink X4 Pro aesthetic) -->
+  <rect x="15" y="15" width="510" height="830" rx="28" fill="#1C1C1E" filter="url(#shadow)"/>
+  <rect x="28" y="28" width="484" height="804" rx="10" fill="#2C2C2E"/>
+
+  <!-- E-Ink Display Screen Area (480 x 800) -->
+  <g transform="translate(30, 30)">
+    <!-- Paper E-Ink Background -->
+    <rect x="0" y="0" width="480" height="800" rx="4" fill="#F8F8F7"/>
+
+    <!-- Top Header Bar -->
+    <text x="16" y="32" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="800" fill="#000000" letter-spacing="0.5">GEMINI AI</text>
+    
+    <!-- Model Badge -->
+    <rect x="314" y="14" width="150" height="26" rx="13" fill="#000000"/>
+    <text x="389" y="31" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12" font-weight="600" fill="#FFFFFF" text-anchor="middle">gemini-2.5-flash</text>
+    
+    <!-- Header Divider -->
+    <line x1="16" y1="46" x2="464" y2="46" stroke="#D1D1D6" stroke-width="1"/>
+
+    <!-- Action Bar -->
+    <!-- PROMPTS Button -->
+    <rect x="16" y="54" width="146" height="40" rx="6" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="89" y="79" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="13" font-weight="700" fill="#000000" text-anchor="middle">💡 PROMPTS ▾</text>
+
+    <!-- CLEAR Button -->
+    <rect x="170" y="54" width="76" height="40" rx="6" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="208" y="79" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="13" font-weight="700" fill="#000000" text-anchor="middle">CLEAR</text>
+
+    <!-- SEND Button (Inverted) -->
+    <rect x="254" y="54" width="210" height="40" rx="6" fill="#000000" stroke="#000000" stroke-width="2"/>
+    <text x="359" y="79" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="14" font-weight="800" fill="#FFFFFF" text-anchor="middle">SEND ➔</text>
+
+    <!-- Status Line -->
+    <text x="16" y="112" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12" font-weight="600" fill="#1C1C1E">● Wi-Fi: Home_WiFi_5G</text>
+    <text x="464" y="112" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12" font-weight="600" fill="#1C1C1E" text-anchor="end">● Key: Ready</text>
+
+    <!-- Live Prompt Box -->
+    <rect x="16" y="124" width="448" height="402" rx="8" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    
+    <!-- Typed Prompt Text -->
+    <text x="32" y="158" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', serif" font-size="19" font-weight="500" fill="#000000" line-height="28">
+      <tspan x="32" dy="0">Explain quantum computing in</tspan>
+      <tspan x="32" dy="28">simple terms, and give 3 real-world</tspan>
+      <tspan x="32" dy="28">practical use cases</tspan>
+      <tspan font-weight="300" fill="#007AFF"> |</tspan>
+    </text>
+
+    <!-- Character Count Indicator -->
+    <text x="448" y="512" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12" font-weight="600" fill="#8E8E93" text-anchor="end">82/200</text>
+
+    <!-- Keyboard Area Background -->
+    <rect x="0" y="530" width="480" height="270" fill="#E5E5EA" rx="0"/>
+    <line x1="0" y1="530" x2="480" y2="530" stroke="#C7C7CC" stroke-width="1"/>
+
+    <!-- KEYBOARD ROW 1: y=538, h=58, 10 keys (43px, gap 4) -->
+    <!-- Q -->
+    <rect x="7" y="538" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="28" y="574" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">q</text>
+    <!-- W -->
+    <rect x="54" y="538" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="75" y="574" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">w</text>
+    <!-- E -->
+    <rect x="101" y="538" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="122" y="574" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">e</text>
+    <!-- R -->
+    <rect x="148" y="538" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="169" y="574" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">r</text>
+    <!-- T -->
+    <rect x="195" y="538" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="216" y="574" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">t</text>
+    <!-- Y -->
+    <rect x="242" y="538" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="263" y="574" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">y</text>
+    <!-- U -->
+    <rect x="289" y="538" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="310" y="574" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">u</text>
+    <!-- I -->
+    <rect x="336" y="538" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="357" y="574" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">i</text>
+    <!-- O -->
+    <rect x="383" y="538" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="404" y="574" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">o</text>
+    <!-- P -->
+    <rect x="430" y="538" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="451" y="574" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">p</text>
+
+    <!-- KEYBOARD ROW 2: y=602, h=58, 9 keys (43px, gap 4, start at 30 = 23px indent) -->
+    <!-- A -->
+    <rect x="30" y="602" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="51" y="638" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">a</text>
+    <!-- S -->
+    <rect x="77" y="602" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="98" y="638" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">s</text>
+    <!-- D -->
+    <rect x="124" y="602" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="145" y="638" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">d</text>
+    <!-- F -->
+    <rect x="171" y="602" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="192" y="638" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">f</text>
+    <!-- G -->
+    <rect x="218" y="602" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="239" y="638" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">g</text>
+    <!-- H -->
+    <rect x="265" y="602" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="286" y="638" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">h</text>
+    <!-- J -->
+    <rect x="312" y="602" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="333" y="638" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">j</text>
+    <!-- K -->
+    <rect x="359" y="602" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="380" y="638" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">k</text>
+    <!-- L -->
+    <rect x="406" y="602" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="427" y="638" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">l</text>
+
+    <!-- KEYBOARD ROW 3: y=666, h=58 (Shift 66px, 7 keys 43px, Del 67px) -->
+    <!-- SHIFT -->
+    <rect x="7" y="666" width="66" height="58" rx="6" fill="#D1D1D6" stroke="#8E8E93" stroke-width="1"/>
+    <text x="40" y="702" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" fill="#000000" text-anchor="middle">⇧</text>
+    <!-- Z -->
+    <rect x="77" y="666" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="98" y="702" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">z</text>
+    <!-- X -->
+    <rect x="124" y="666" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="145" y="702" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">x</text>
+    <!-- C -->
+    <rect x="171" y="666" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="192" y="702" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">c</text>
+    <!-- V -->
+    <rect x="218" y="666" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="239" y="702" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">v</text>
+    <!-- B -->
+    <rect x="265" y="666" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="286" y="702" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">b</text>
+    <!-- N -->
+    <rect x="312" y="666" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="333" y="702" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">n</text>
+    <!-- M -->
+    <rect x="359" y="666" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="380" y="702" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="500" fill="#000000" text-anchor="middle">m</text>
+    <!-- DELETE -->
+    <rect x="406" y="666" width="67" height="58" rx="6" fill="#D1D1D6" stroke="#8E8E93" stroke-width="1"/>
+    <text x="439" y="702" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" fill="#000000" text-anchor="middle">⌫</text>
+
+    <!-- KEYBOARD ROW 4: y=730, h=58 (Mode 66px, Space 260px, Dot 43px, Send 85px) -->
+    <!-- 123 -->
+    <rect x="7" y="730" width="66" height="58" rx="6" fill="#D1D1D6" stroke="#8E8E93" stroke-width="1"/>
+    <text x="40" y="766" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" fill="#000000" text-anchor="middle">123</text>
+    <!-- SPACE -->
+    <rect x="77" y="730" width="260" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="207" y="766" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="400" fill="#8E8E93" text-anchor="middle">space</text>
+    <!-- DOT -->
+    <rect x="341" y="730" width="43" height="58" rx="6" fill="#FFFFFF" stroke="#8E8E93" stroke-width="1"/>
+    <text x="362" y="766" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="24" font-weight="600" fill="#000000" text-anchor="middle">.</text>
+    <!-- SEND ENTER -->
+    <rect x="388" y="730" width="85" height="58" rx="6" fill="#000000" stroke="#000000" stroke-width="1"/>
+    <text x="430" y="766" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">Send ↵</text>
+  </g>
+</svg>

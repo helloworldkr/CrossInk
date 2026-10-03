@@ -1,9 +1,9 @@
-# CrossInk
+# CrossInk — Gemini AI Edition
 
-> **Open-source e-reader firmware for ESP32-C3 and ESP32-S3 devices** (forked from [CrossPoint](https://github.com/crosspoint-reader/crosspoint-reader) / [uxjulia/CrossInk](https://github.com/uxjulia/CrossInk)).  
-> Enhanced with **Google Gemini AI**, **Notes with live Wi-Fi typing**, **Anki/FSRS flashcard study**, **Starred books**, **Dark mode scheduling**, custom typography, and lightweight reading statistics.
+> **Open-source e-reader firmware with Google Gemini AI for ESP32-C3 and ESP32-S3 devices** (forked from [CrossPoint](https://github.com/crosspoint-reader/crosspoint-reader) / [uxjulia/CrossInk](https://github.com/uxjulia/CrossInk)).  
+> Enhanced with **Google Gemini AI**, **iPhone-style on-screen keyboard**, **Notes with live Wi-Fi typing**, **Anki/FSRS flashcard study**, **Starred books**, **Dark mode scheduling**, custom typography, and lightweight reading statistics.
 
-[![GitHub repo](https://img.shields.io/badge/GitHub-helloworldkr%2FCrossInk-blue?logo=github)](https://github.com/helloworldkr/CrossInk)
+[![GitHub repo](https://img.shields.io/badge/GitHub-helloworldkr%2FCrossInk--Gemini--AI-blue?logo=github)](https://github.com/helloworldkr/CrossInk)
 [![PlatformIO](https://img.shields.io/badge/PlatformIO-Build%20Passing-brightgreen?logo=platformio)](https://platformio.org/)
 
 ---
@@ -24,13 +24,13 @@ This fork extends the firmware with powerful built-in apps, reading conveniences
 ### Feature Highlights
 
 - 🤖 **Google Gemini AI Assistant**: Ask questions, explain concepts, and brainstorm directly on your e-reader screen.
+- ⌨️ **Native iPhone-Style Keyboard**: Authentic 4-row touch keyboard with live on-screen typing, ready-made prompt templates, Shift, and Symbol modes.
 - 📝 **Notes & Checklists**: On-device note-taking with on-screen keyboard, live phone typing over Wi-Fi (`/n`), and sleep screen pinning.
 - 🎴 **Study (Anki & Spaced Repetition)**: Flashcard review powered by the FSRS algorithm with Cloze deletions and image support.
 - ⭐ **Starred Books & Quick Navigation**: Star/favorite books from the reader or file browser and access them instantly from the Home screen.
 - 🔄 **Start from Beginning**: Restart any book from the very beginning (spine 0, page 0) with a single click.
 - 📂 **Go to Book Folder**: Exit from a book directly into its containing folder in the File Browser with your reading progress saved.
 - 🌙 **Automatic Dark Mode Schedule**: Auto-switch to dark mode at sunset and daylight mode in the morning.
-- ⌨️ **iOS-Style Keyboard**: Ergonomic 4-row iPhone-style keyboard layout with dedicated `123` and `#+=` layers.
 - 🚀 **Apps Shelf**: Dedicated apps launcher on the Home screen to easily launch Gemini, Notes, Study, and Toybox apps.
 - 🔤 **Curated Reader Typography**: Crisp built-in [Lexend Deca](https://fonts.google.com/specimen/Lexend+Deca) and [Bitter](https://fonts.google.com/specimen/Bitter) fonts with anti-aliasing and CJK/symbol support.
 - 📊 **Lightweight Reading Statistics**: Real-time reading stats, session tracking, sleep screen dashboard, and device-to-device sync.
@@ -41,10 +41,18 @@ This fork extends the firmware with powerful built-in apps, reading conveniences
 
 Have an intelligent AI reading companion right on your e-reader. Ask for clarifications on complex passages, summaries, translations, or brainstorm topics without picking up your phone or computer.
 
+<p align="center">
+  <img src="assets/gemini-ai-keyboard.png" width="380" alt="CrossInk Gemini AI with iPhone Keyboard on Xteink X4 Pro" />
+  <br>
+  <em>Interactive Gemini AI assistant with built-in iPhone-style keyboard on Xteink X4 Pro (Portrait 480×800)</em>
+</p>
+
 ### How It Works
 
+- **Live On-Screen Keyboard**: Type questions directly into the live prompt box using an authentic iPhone-style touch keyboard.
+- **Ready-Made Prompts**: Tap `[ 💡 PROMPTS ▾ ]` for instant 1-tap templates (*"Summarize key ideas"*, *"Explain simply (ELI5)"*, *"Translate to clear English"*, etc.).
 - **Direct Wi-Fi Inference**: Connects securely to Google's Gemini API over Wi-Fi.
-- **Smart Model Engine**: Defaults to `gemini-2.5-flash` with quick model switching to `gemini-2.0-flash` or `gemini-1.5-flash`.
+- **Smart Model Engine**: Defaults to `gemini-2.5-flash` with quick model switching to `gemini-2.5-flash-lite`, `gemini-2.5-pro`, or `gemini-2.0-flash`.
 - **E-Ink Paged Reading**: Long responses are cleanly formatted and paginated with simple tap/button page turns.
 - **1-Tap Export to Notes**: Save any AI answer or explanation straight into your **Notes** app for offline reference.
 - **Auto-Connect**: Automatically connects to your saved Wi-Fi network when you launch the Gemini app.
