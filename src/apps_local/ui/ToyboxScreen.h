@@ -292,6 +292,7 @@ inline void headerBand(Screen& screen, const freeink::ui::HeaderProps& props) {
   const fui::Rect ink = fui::makeRect(band.x, inkTop, band.width, static_cast<int16_t>(band.bottom() - inkTop));
 
   fui::HeaderProps fitted = props;
+  if (fitted.styles.unset()) fitted.styles = styles;
   // The theme substitutions Screen::header() is about to make, made here first
   // because the fitting needs the real style and the real padding. Taking the
   // theme's title style whole -- rather than building one -- is what keeps the
