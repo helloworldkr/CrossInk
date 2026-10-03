@@ -11,7 +11,8 @@
 namespace geminiui {
 namespace {
 
-constexpr int kBodyTop = toybox::kBodyTop;
+constexpr int kTopGap = 8;
+constexpr int kBodyTop = toybox::kChromeHeight + kTopGap;
 constexpr int kFooterHeight = toybox::kPillHeight;
 
 fui::TextStyle style(const fui::FontId font, const fui::TextAlign align = fui::TextAlign::Left,
@@ -51,7 +52,7 @@ void chrome(toybox::Screen& screen, const char* title, const char* rightLabel = 
   }
   toybox::absoluteChrome(screen);
   toybox::headerBand(screen, header);
-  screen.insetContent(fui::Insets{toybox::kBodyGutter, toybox::kMargin, toybox::kMargin, toybox::kMargin});
+  screen.insetContent(fui::Insets{kTopGap, toybox::kMargin, toybox::kMargin, toybox::kMargin});
 }
 
 void cardBox(toybox::Screen& screen, const fui::Rect& box) {
@@ -62,7 +63,7 @@ void cardBox(toybox::Screen& screen, const fui::Rect& box) {
 
 int responseTextHeight(const fui::DeviceContext& device) {
   const int footerY = device.height - toybox::kMargin - kFooterHeight;
-  const int textY = kBodyTop + 22;
+  const int textY = kBodyTop + 20;
   const int textH = footerY - 12 - textY;
   return textH > 0 ? textH : 200;
 }
@@ -401,7 +402,7 @@ void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
                        style(toybox::kSmallFont, fui::TextAlign::Right));
 
   // Conversational Stream Area (generous vertical room in portrait)
-  const int textY = subY + 22;
+  const int textY = subY + 20;
   const int textH = footer.y - 12 - textY;
   const fui::Rect textRect = fui::makeRect(band.x, static_cast<int16_t>(textY), band.width, static_cast<int16_t>(textH));
 
