@@ -21,7 +21,7 @@ namespace {
 
 constexpr shelf::Item kApps[] = {
     {"GEMINI", &icon_wavelength_32, &GeminiActivity::create},
-    {"STUDY", &icon_study_32, &StudyActivity::create},
+    {"ANKI", &icon_study_32, &StudyActivity::create},
     {"NOTES", &icon_murdle_face_clues_32, &NotesActivity::create},
 };
 
@@ -136,7 +136,8 @@ const int* itemLimits() {
 bool findItemByTitle(const char* title, int& folder, int& item) {
   for (int f = 0; f < kFolderCount; ++f) {
     for (int i = 0; i < kFolders[f].count; ++i) {
-      if (strcasecmp(kFolders[f].items[i].title, title) == 0) {
+      if (strcasecmp(kFolders[f].items[i].title, title) == 0 ||
+          (strcasecmp(kFolders[f].items[i].title, "ANKI") == 0 && strcasecmp(title, "study") == 0)) {
         folder = f;
         item = i;
         return true;

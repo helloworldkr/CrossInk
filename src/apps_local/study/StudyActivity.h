@@ -35,7 +35,7 @@ struct Rect;
 class StudyActivity final : public Activity {
  public:
   StudyActivity(GfxRenderer& renderer, MappedInputManager& mappedInput)
-      : Activity("Study", renderer, mappedInput), fsrs_(nullptr), scheduler_(fsrs_, study::Steps::defaults()) {}
+      : Activity("Anki", renderer, mappedInput), fsrs_(nullptr), scheduler_(fsrs_, study::Steps::defaults()) {}
   ~StudyActivity() override = default;
 
   static std::unique_ptr<Activity> create(GfxRenderer& renderer, MappedInputManager& mappedInput);

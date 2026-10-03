@@ -147,7 +147,7 @@ void timeline(toybox::Screen& screen, const fui::Rect& box, const DeckModel& mod
 }  // namespace
 
 void buildDeck(toybox::Screen& screen, const DeckModel& model) {
-  chrome(screen, "STUDY");
+  chrome(screen, "ANKI");
   screen.insetContent(fui::Insets{toybox::kGutter * 3, toybox::kMargin, toybox::kMargin, toybox::kMargin});
   const fui::Rect body = screen.body();
 

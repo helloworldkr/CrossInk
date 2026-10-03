@@ -74,7 +74,7 @@ bool insufficientHeap(std::string& message) {
   const uint32_t maxBlock = ESP.getMaxAllocHeap();
   if (freeHeap < 35000 || maxBlock < 20000) {
     LOG_ERR("STUDYSYNC", "heap too low for TLS: free=%u block=%u", freeHeap, maxBlock);
-    message = "Not enough memory free to sync right now. Leave and reopen Study, then try again.";
+    message = "Not enough memory free to sync right now. Leave and reopen Anki, then try again.";
     return true;
   }
   return false;

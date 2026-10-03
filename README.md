@@ -26,12 +26,12 @@ This fork extends the firmware with powerful built-in apps, reading conveniences
 - 🤖 **Google Gemini AI Assistant**: Ask questions, explain concepts, and brainstorm directly on your e-reader screen.
 - ⌨️ **Native iPhone-Style Keyboard**: Authentic 4-row touch keyboard with live on-screen typing, ready-made prompt templates, Shift, and Symbol modes.
 - 📝 **Notes & Checklists**: On-device note-taking with on-screen keyboard, live phone typing over Wi-Fi (`/n`), and sleep screen pinning.
-- 🎴 **Study (Anki & Spaced Repetition)**: Flashcard review powered by the FSRS algorithm with Cloze deletions and image support.
+- 🎴 **Anki (Spaced Repetition & Flashcards)**: Native Anki flashcard review powered by the FSRS algorithm with Cloze deletions and image support.
 - ⭐ **Starred Books & Quick Navigation**: Star/favorite books from the reader or file browser and access them instantly from the Home screen.
 - 🔄 **Start from Beginning**: Restart any book from the very beginning (spine 0, page 0) with a single click.
 - 📂 **Go to Book Folder**: Exit from a book directly into its containing folder in the File Browser with your reading progress saved.
 - 🌙 **Automatic Dark Mode Schedule**: Auto-switch to dark mode at sunset and daylight mode in the morning.
-- 🚀 **Apps Shelf**: Dedicated apps launcher on the Home screen to easily launch Gemini, Notes, Study, and Toybox apps.
+- 🚀 **Apps Shelf**: Dedicated apps launcher on the Home screen to easily launch Gemini, Anki, and Notes.
 - 🔤 **Curated Reader Typography**: Crisp built-in [Lexend Deca](https://fonts.google.com/specimen/Lexend+Deca) and [Bitter](https://fonts.google.com/specimen/Bitter) fonts with anti-aliasing and CJK/symbol support.
 - 📊 **Lightweight Reading Statistics**: Real-time reading stats, session tracking, sleep screen dashboard, and device-to-device sync.
 
@@ -101,14 +101,14 @@ A lightweight, distraction-free notepad built right into your e-reader.
 
 ---
 
-## 🎴 Study (Anki & Spaced Repetition)
+## 🎴 Anki (Spaced Repetition & Flashcards)
 
-Review flashcard decks on an eye-friendly e-ink screen before bed or during commutes.
+Review your Anki flashcard decks on an eye-friendly e-ink screen before bed or during commutes.
 
 - **FSRS Algorithm**: Implements the modern Free Spaced Repetition Scheduler for optimized memory retention.
 - **Card Review**: Tap or press Confirm to reveal answers, then rate retention as *Again*, *Hard*, *Good*, or *Easy*.
 - **Rich Card Support**: Supports Cloze deletions (`{{c1::answer}}`), markdown formatting, and embedded illustrations.
-- **Importing Decks**: Convert any existing Anki `.apkg` deck using the included Python converter script located in [`tools_local/study/`](./tools_local/study/).
+- **Importing Decks**: Convert any existing Anki `.apkg` deck using the one-click web installer at [crossplay.ma-r-s.com/study](https://crossplay.ma-r-s.com/study/) or the included Python converter script located in [`tools_local/study/`](./tools_local/study/).
 
 ---
 

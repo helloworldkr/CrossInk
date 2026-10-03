@@ -1656,7 +1656,7 @@ void StudyActivity::render(RenderLock&&) {
     const int remaining = (queueCount_ - queuePos_) + learningCount_ + 1;
     std::snprintf(title, sizeof(title), "%d LEFT", remaining);
   } else {
-    std::snprintf(title, sizeof(title), "STUDY");
+    std::snprintf(title, sizeof(title), "ANKI");
   }
   // The band, the rule and the battery come from the theme; the two things
   // inside it are placed here.
@@ -1891,8 +1891,8 @@ void StudyActivity::endSyncSession(const studyui::SyncVerdictKind kind, const st
   char waiting[64] = "";
   if (describeQueue && deckCount_ > 0) {
     std::snprintf(waiting, sizeof(waiting), "%s",
-                  (dueTotal_ + newTotal_ + otherWaiting_) > 0 ? "Your decks are in Study, ready to review."
-                                                              : "Your decks are in Study. Nothing is due right now.");
+                  (dueTotal_ + newTotal_ + otherWaiting_) > 0 ? "Your decks are in Anki, ready to review."
+                                                              : "Your decks are in Anki. Nothing is due right now.");
     whatNow = waiting;
   }
   flow_.verdict = kind;
