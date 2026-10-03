@@ -49,11 +49,12 @@ Have an intelligent AI reading companion right on your e-reader. Ask for clarifi
 
 ### How It Works
 
-- **Live On-Screen Keyboard**: Type questions directly into the live prompt box using an authentic iPhone-style touch keyboard.
+- **Live On-Screen Keyboard & Full-Screen Typing**: Type questions directly into the live prompt box using the authentic on-screen touch keyboard, or tap the prompt card to open the distraction-free full-screen keyboard with cursor control.
 - **Multi-Turn Conversations**: Tap `[ REPLY ]` on any response to ask follow-up questions and continue the conversation seamlessly with full context.
 - **Save with Folder Management**: Tap `[ SAVE ]` to save the complete multi-turn conversation locally. Save to default (`/XTData/gemini_chats`), export to `/notes`, choose an existing directory, or create a new folder on the fly.
-- **Resume Previous Chats**: Tap `[ 📂 CHATS ]` on the Welcome screen to browse and reload previous conversations with full pagination and resume chatting where you left off.
-- **Ready-Made Prompts**: Tap `[ 💡 PROMPTS ▾ ]` for instant 1-tap templates (*"Summarize key ideas"*, *"Explain simply (ELI5)"*, *"Translate to clear English"*, etc.).
+- **Resume Previous Chats**: Tap `[ CHATS ]` on the Welcome screen to browse and reload previous conversations with full pagination and resume chatting where you left off.
+- **One-Tap Quick Actions & Settings**: Instant access to ready-made prompt templates via `[ PROMPTS ]`, saved chat history via `[ CHATS ]`, and model selection / Wi-Fi setup via `[ SETTINGS ]`.
+- **Ready-Made Prompts**: Tap `[ PROMPTS ]` for instant 1-tap templates (*"Summarize key ideas"*, *"Explain simply (ELI5)"*, *"Translate to clear English"*, etc.).
 - **Direct Wi-Fi Inference**: Connects securely to Google's Gemini API over Wi-Fi.
 - **Smart Model Engine**: Defaults to `gemini-2.5-flash` with quick model switching to `gemini-2.5-flash-lite`, `gemini-2.5-pro`, or `gemini-2.0-flash`.
 - **E-Ink Paged Reading**: Long responses are cleanly formatted and paginated with simple tap/button page turns.

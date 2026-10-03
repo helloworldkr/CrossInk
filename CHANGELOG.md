@@ -38,6 +38,8 @@
 
 ### Fixed
 
+- **Gemini AI UI/UX Refinements**: Replaced unsupported non-ASCII Unicode glyphs on buttons and keys (such as emojis, symbols, and arrows) with crisp, reliable ASCII labels (`SHIFT`, `DEL`, `SEND`, `PROMPTS`, `CHATS`, `SETTINGS`, `SAVED`, etc.) to eliminate missing glyph rectangles in 1-bit Toybox fonts. Resolved layout overlap on the status bar between Wi-Fi SSID and API Key indicators. Added a dedicated `[ SETTINGS ]` button to the main action bar for easy 1-tap configuration of Wi-Fi, active model, and API keys. Made the prompt card directly interactive so tapping anywhere on it opens full-screen text editing with cursor support. Added a `[ BACK ]` button to the response footer to return to the prompt view without erasing conversation history.
+
 - **EPUB Progress Preservation**: Fixed reading progress being incorrectly rewound to the Table of Contents or initial link origin when closing an EPUB or putting the device to sleep after navigating via in-book or chapter links.
 - The web EPUB optimizer now accepts books that use standard Adobe or IDPF font obfuscation, while leaving DRM-protected books unchanged.
 - Frontlight schedule time pickers now use the compact number keypad from Go To screens.

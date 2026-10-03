@@ -120,105 +120,122 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
   const fui::DeviceContext& device = screen.device();
   const fui::Rect band = contentBand(device);
 
-  // --- 1. Action Bar: PROMPTS | SAVED CHATS | CLEAR | SEND ➔ ---
-  constexpr int barH = 40;
-  constexpr int gap = 6;
-  const int promptBtnW = 124;
-  const int chatsBtnW = 104;
-  const int clearBtnW = 66;
-  const int sendBtnW = band.width - promptBtnW - chatsBtnW - clearBtnW - gap * 3;
+  // --- 1. Top Action Bar: PROMPTS | CHATS | SETTINGS ---
+  constexpr int barH = 38;
+  constexpr int gap = 8;
+  const int btnW = (band.width - gap * 2) / 3;
 
   int curX = band.x;
   fui::ButtonProps promptsBtn;
-  promptsBtn.label = "\U0001F4A1 PROMPTS \u25BE";
+  promptsBtn.label = "PROMPTS";
   promptsBtn.action = ActionQuickPrompts;
   promptsBtn.styles = toybox::rowStyles();
   promptsBtn.text.font = toybox::kSmallFont;
-  screen.button(promptsBtn, fui::makeRect(curX, band.y, promptBtnW, barH));
-  curX += promptBtnW + gap;
+  screen.button(promptsBtn, fui::makeRect(curX, band.y, btnW, barH));
+  curX += btnW + gap;
 
   fui::ButtonProps chatsBtn;
-  chatsBtn.label = "\U0001F4C2 CHATS";
+  chatsBtn.label = "CHATS";
   chatsBtn.action = ActionSavedChats;
   chatsBtn.styles = toybox::rowStyles();
   chatsBtn.text.font = toybox::kSmallFont;
-  screen.button(chatsBtn, fui::makeRect(curX, band.y, chatsBtnW, barH));
-  curX += chatsBtnW + gap;
+  screen.button(chatsBtn, fui::makeRect(curX, band.y, btnW, barH));
+  curX += btnW + gap;
+
+  fui::ButtonProps settingsBtn;
+  settingsBtn.label = "SETTINGS";
+  settingsBtn.action = ActionOpenSettings;
+  settingsBtn.styles = toybox::rowStyles();
+  settingsBtn.text.font = toybox::kSmallFont;
+  screen.button(settingsBtn, fui::makeRect(curX, band.y, band.width - (curX - band.x), barH));
+
+  // --- 2. Status Line (Separated columns, no overlap) ---
+  const int statusY = band.y + barH + 6;
+  std::string wifiStr = model.wifiConnected ? ("Wi-Fi: " + (model.wifiSsid.empty() ? "Connected" : model.wifiSsid))
+                                            : (model.wifiConnecting ? "Wi-Fi: Connecting..." : "Wi-Fi: Offline");
+  std::string keyStr = model.tokenFound ? "Key: Ready" : "Key: Missing";
+
+  const int wifiW = 270;
+  const int keyW = band.width - wifiW;
+  screen.target().text(fui::makeRect(band.x, statusY, wifiW, 16), wifiStr.c_str(),
+                       style(toybox::kSmallFont, fui::TextAlign::Left));
+  screen.target().text(fui::makeRect(band.x + wifiW, statusY, keyW, 16), keyStr.c_str(),
+                       style(toybox::kSmallFont, fui::TextAlign::Right));
+
+  // --- 3. Keyboard Geometry (Docked at bottom of 800px Portrait screen) ---
+  constexpr int kRowH = 56;
+  constexpr int kRowGap = 6;
+  constexpr int kKeyGap = 4;
+  constexpr int kStartX = 7;
+  constexpr int kKeyW = 43;
+
+  const int row4Y = device.height - 18 - kRowH;      // 800 - 18 - 56 = 726
+  const int row3Y = row4Y - kRowGap - kRowH;          // 726 - 6 - 56 = 664
+  const int row2Y = row3Y - kRowGap - kRowH;          // 664 - 6 - 56 = 602
+  const int row1Y = row2Y - kRowGap - kRowH;          // 602 - 6 - 56 = 540
+
+  // --- 4. Action Strip above Keyboard: CLEAR | SEND > ---
+  const int stripH = 34;
+  const int stripY = row1Y - 8 - stripH;              // 540 - 8 - 34 = 498
+  const int clearW = 90;
+  const int sendW = band.width - clearW - 8;
 
   fui::ButtonProps clearBtn;
   clearBtn.label = "CLEAR";
   clearBtn.action = ActionClearPrompt;
   clearBtn.styles = toybox::rowStyles();
   clearBtn.text.font = toybox::kSmallFont;
-  screen.button(clearBtn, fui::makeRect(curX, band.y, clearBtnW, barH));
-  curX += clearBtnW + gap;
+  screen.button(clearBtn, fui::makeRect(band.x, stripY, clearW, stripH));
 
   fui::ButtonProps sendBtn;
-  sendBtn.label = "SEND \u2794";
+  sendBtn.label = "SEND >";
   sendBtn.action = ActionSendPrompt;
   sendBtn.styles = toybox::invertedStyles();
   sendBtn.text.font = toybox::kSmallFont;
-  screen.button(sendBtn, fui::makeRect(curX, band.y, sendBtnW, barH));
+  screen.button(sendBtn, fui::makeRect(band.x + clearW + 8, stripY, sendW, stripH));
 
-  // Status line right under Action bar (20px):
-  const int statusY = band.y + barH + 6;
-  std::string wifiStr = model.wifiConnected ? ("\u25CF Wi-Fi: " + (model.wifiSsid.empty() ? "Connected" : model.wifiSsid))
-                                            : (model.wifiConnecting ? "\u25CC Wi-Fi: Connecting..." : "\u25CB Wi-Fi: Offline");
-  std::string keyStr = model.tokenFound ? "\u25CF Key: Ready" : "\u25CB Key: Missing";
-
-  screen.target().text(fui::makeRect(band.x, statusY, band.width / 2 + 20, 16), wifiStr.c_str(),
-                       style(toybox::kSmallFont, fui::TextAlign::Left));
-  screen.target().text(fui::makeRect(band.x + band.width / 2, statusY, band.width / 2, 16), keyStr.c_str(),
-                       style(toybox::kSmallFont, fui::TextAlign::Right));
-
-  // --- 2. Keyboard Geometry (Docked at bottom of 800px Portrait screen) ---
-  constexpr int kRowH = 58;
-  constexpr int kRowGap = 6;
-  constexpr int kKeyGap = 4;
-  constexpr int kStartX = 7;
-  constexpr int kKeyW = 43;
-
-  const int row4Y = device.height - 12 - kRowH;      // 800 - 12 - 58 = 730
-  const int row3Y = row4Y - kRowGap - kRowH;          // 730 - 6 - 58 = 666
-  const int row2Y = row3Y - kRowGap - kRowH;          // 666 - 6 - 58 = 602
-  const int row1Y = row2Y - kRowGap - kRowH;          // 602 - 6 - 58 = 538
-
-  // --- 3. Live Prompt Box: between Status Line and Keyboard! ---
-  const int boxY = statusY + 22;
-  const int boxH = row1Y - 10 - boxY;
+  // --- 5. Interactive Prompt Card (Between Status Line and Action Strip) ---
+  const int boxY = statusY + 20;
+  const int boxH = stripY - 8 - boxY;
   const fui::Rect promptBox = fui::makeRect(band.x, boxY, band.width, boxH);
-  cardBox(screen, promptBox);
+
+  // Button interaction over prompt box so tapping it opens full-screen typing
+  fui::ButtonProps promptCardBtn;
+  promptCardBtn.label = "";
+  promptCardBtn.action = ActionEditPrompt;
+  promptCardBtn.styles = toybox::rowStyles();
+  screen.button(promptCardBtn, promptBox);
 
   if (model.draftPrompt.empty()) {
     screen.target().text(
-        fui::makeRect(promptBox.x + 14, promptBox.y + 16, promptBox.width - 28, 24),
-        "Type your prompt on the keyboard below...",
+        fui::makeRect(promptBox.x + 14, promptBox.y + 14, promptBox.width - 28, 22),
+        "Tap here to open full keyboard...",
         style(toybox::kBodyFont, fui::TextAlign::Left));
 
     screen.target().text(
-        fui::makeRect(promptBox.x + 14, promptBox.y + 48, promptBox.width - 28, 80),
-        "Ask any question, explain concepts, or tap [ \U0001F4A1 PROMPTS \u25BE ] above for instant ready-made templates.",
+        fui::makeRect(promptBox.x + 14, promptBox.y + 44, promptBox.width - 28, 80),
+        "Ask questions, explain concepts, or brainstorm.\nOr use the on-screen keyboard below.\nTap [ PROMPTS ] for ready-made templates.",
         style(toybox::kSmallFont, fui::TextAlign::Left, fui::Color::Black, 4));
 
     screen.target().text(
         fui::makeRect(promptBox.x + 14, promptBox.y + promptBox.height - 24, promptBox.width - 28, 18),
-        "[ Ready to type | ]",
+        "[ Tap card to type | 0/200 ]",
         style(toybox::kSmallFont, fui::TextAlign::Right));
   } else {
     std::string promptWithCursor = model.draftPrompt + "|";
     screen.target().text(
-        fui::makeRect(promptBox.x + 14, promptBox.y + 14, promptBox.width - 28, promptBox.height - 40),
+        fui::makeRect(promptBox.x + 14, promptBox.y + 12, promptBox.width - 28, promptBox.height - 36),
         promptWithCursor.c_str(),
         style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 11));
 
-    std::string countStr = std::to_string(model.draftPrompt.size()) + "/200";
+    std::string countStr = std::to_string(model.draftPrompt.size()) + "/200  (Tap to edit)";
     screen.target().text(
         fui::makeRect(promptBox.x + 14, promptBox.y + promptBox.height - 22, promptBox.width - 28, 16),
         countStr.c_str(),
         style(toybox::kSmallFont, fui::TextAlign::Right));
   }
 
-  // --- 4. Render the 4 Rows of iPhone Keyboard ---
+  // --- 6. Render the 4 Rows of iPhone Keyboard with 100% clean ASCII ---
 
   // Row 1 (10 keys)
   const char** r1 = model.symbols ? kRow1Sym : (model.shifted ? kRow1Up : kRow1Low);
@@ -237,7 +254,7 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
 
   // Row 3 (Shift 66px + 7 keys + Del 67px)
   fui::Rect shiftRect = fui::makeRect(kStartX, row3Y, 66, kRowH);
-  const char* shiftLabel = model.symbols ? "#+=" : (model.shifted ? "\u25B2" : "\u21E7");
+  const char* shiftLabel = model.symbols ? "#+=" : (model.shifted ? "CAPS" : "SHIFT");
   drawIphoneKey(screen, shiftRect, shiftLabel, ActionKeyShift, 0, model.shifted);
 
   const int row3KeysX = kStartX + 66 + kKeyGap;
@@ -249,7 +266,7 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
 
   const int delX = row3KeysX + 7 * (kKeyW + kKeyGap);
   fui::Rect delRect = fui::makeRect(delX, row3Y, 67, kRowH);
-  drawIphoneKey(screen, delRect, "\u232B", ActionKeyDelete, 0);
+  drawIphoneKey(screen, delRect, "DEL", ActionKeyDelete, 0);
 
   // Row 4 (Mode 66px + Space 260px + Dot 43px + Send 85px)
   fui::Rect modeRect = fui::makeRect(kStartX, row4Y, 66, kRowH);
@@ -265,7 +282,7 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
 
   const int sendKx = dotX + kKeyW + kKeyGap;
   fui::Rect sendKRect = fui::makeRect(sendKx, row4Y, 85, kRowH);
-  drawIphoneKey(screen, sendKRect, "Send \u21B5", ActionSendPrompt, 0, true);
+  drawIphoneKey(screen, sendKRect, "SEND", ActionSendPrompt, 0, true);
 }
 
 void drawThinking(toybox::Screen& screen, const ThinkingModel& model) {
@@ -305,7 +322,7 @@ void drawThinking(toybox::Screen& screen, const ThinkingModel& model) {
 
   // Footer: Cancel button
   fui::ButtonProps cancelBtn;
-  cancelBtn.label = "CANCEL (OR PRESS BACK)";
+  cancelBtn.label = "CANCEL";
   cancelBtn.action = ActionDismissNotice;
   cancelBtn.styles = toybox::rowStyles();
   screen.button(cancelBtn, footer);
@@ -315,9 +332,9 @@ void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
   char pageBuf[48];
   if (model.turnNumber > 1) {
     if (model.totalPages > 1) {
-      snprintf(pageBuf, sizeof(pageBuf), "Turn %d \u2022 %d/%d", model.turnNumber, model.currentPage + 1, model.totalPages);
+      snprintf(pageBuf, sizeof(pageBuf), "Turn %d | %d/%d", model.turnNumber, model.currentPage + 1, model.totalPages);
     } else {
-      snprintf(pageBuf, sizeof(pageBuf), "Turn %d \u2022 %s", model.turnNumber, model.modelName.c_str());
+      snprintf(pageBuf, sizeof(pageBuf), "Turn %d | %s", model.turnNumber, model.modelName.c_str());
     }
   } else {
     if (model.totalPages > 1) {
@@ -357,11 +374,13 @@ void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
 
   // Bottom Footer Navigation & Actions for Portrait (448px width)
   if (model.totalPages > 1) {
-    // 5 buttons: [ < ] [ REPLY ] [ SAVE ] [ NEW ] [ > ]
-    constexpr int arrowW = 46;
-    constexpr int btnGap = 6;
-    constexpr int newW = 78;
-    const int midW = (footer.width - arrowW * 2 - newW - btnGap * 4) / 2;
+    // 6 buttons: [ < ] [ REPLY ] [ SAVE ] [ BACK ] [ NEW ] [ > ]
+    constexpr int arrowW = 42;
+    constexpr int btnGap = 4;
+    constexpr int newW = 62;
+    constexpr int backW = 74;
+    constexpr int replyW = 108;
+    const int saveW = footer.width - (arrowW * 2 + newW + backW + replyW + btnGap * 5);
 
     int curX = footer.x;
 
@@ -376,15 +395,22 @@ void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
     replyBtn.label = "REPLY";
     replyBtn.action = ActionAsk;
     replyBtn.styles = toybox::invertedStyles();
-    screen.button(replyBtn, fui::makeRect(curX, footer.y, midW, footer.height));
-    curX += midW + btnGap;
+    screen.button(replyBtn, fui::makeRect(curX, footer.y, replyW, footer.height));
+    curX += replyW + btnGap;
 
     fui::ButtonProps saveBtn;
-    saveBtn.label = model.savedToNotes ? "SAVED \u2713" : "SAVE";
+    saveBtn.label = model.savedToNotes ? "SAVED" : "SAVE";
     saveBtn.action = ActionSaveNote;
     saveBtn.styles = toybox::rowStyles();
-    screen.button(saveBtn, fui::makeRect(curX, footer.y, midW, footer.height));
-    curX += midW + btnGap;
+    screen.button(saveBtn, fui::makeRect(curX, footer.y, saveW, footer.height));
+    curX += saveW + btnGap;
+
+    fui::ButtonProps backBtn;
+    backBtn.label = "BACK";
+    backBtn.action = ActionBackToPrompt;
+    backBtn.styles = toybox::rowStyles();
+    screen.button(backBtn, fui::makeRect(curX, footer.y, backW, footer.height));
+    curX += backW + btnGap;
 
     fui::ButtonProps newBtn;
     newBtn.label = "NEW";
@@ -399,9 +425,9 @@ void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
     nextBtn.styles = (model.currentPage < model.totalPages - 1) ? toybox::rowStyles() : toybox::disabledButtonStyles();
     screen.button(nextBtn, fui::makeRect(curX, footer.y, arrowW, footer.height));
   } else {
-    // 3 buttons across portrait width: [ REPLY ] [ SAVE ] [ NEW CHAT ]
+    // 4 buttons across portrait width: [ REPLY ] [ SAVE ] [ BACK ] [ NEW CHAT ]
     constexpr int gap = 8;
-    const int btnW = (footer.width - gap * 2) / 3;
+    const int btnW = (footer.width - gap * 3) / 4;
 
     fui::ButtonProps replyBtn;
     replyBtn.label = "REPLY";
@@ -410,16 +436,22 @@ void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
     screen.button(replyBtn, fui::makeRect(footer.x, footer.y, btnW, footer.height));
 
     fui::ButtonProps saveBtn;
-    saveBtn.label = model.savedToNotes ? "SAVED \u2713" : "SAVE";
+    saveBtn.label = model.savedToNotes ? "SAVED" : "SAVE";
     saveBtn.action = ActionSaveNote;
     saveBtn.styles = toybox::rowStyles();
-    screen.button(saveBtn, fui::makeRect(footer.x + btnW + gap, footer.y, btnW, footer.height));
+    screen.button(saveBtn, fui::makeRect(footer.x + (btnW + gap), footer.y, btnW, footer.height));
+
+    fui::ButtonProps backBtn;
+    backBtn.label = "BACK";
+    backBtn.action = ActionBackToPrompt;
+    backBtn.styles = toybox::rowStyles();
+    screen.button(backBtn, fui::makeRect(footer.x + (btnW + gap) * 2, footer.y, btnW, footer.height));
 
     fui::ButtonProps newBtn;
     newBtn.label = "NEW CHAT";
     newBtn.action = ActionNewChat;
     newBtn.styles = toybox::rowStyles();
-    screen.button(newBtn, fui::makeRect(footer.x + (btnW + gap) * 2, footer.y, btnW, footer.height));
+    screen.button(newBtn, fui::makeRect(footer.x + (btnW + gap) * 3, footer.y, footer.width - (btnW + gap) * 3, footer.height));
   }
 }
 

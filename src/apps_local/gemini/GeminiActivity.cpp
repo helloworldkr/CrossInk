@@ -1076,8 +1076,17 @@ void GeminiActivity::loop() {
         askPrompt(currentPrompt_);
       }
       return;
+    case geminiui::ActionBackToPrompt:
+      state_ = State::Welcome;
+      interactionsReady_ = false;
+      requestUpdate();
+      return;
     case geminiui::ActionDismissNotice:
-      state_ = noticeReturnState_;
+      if (state_ == State::Thinking || state_ == State::Querying) {
+        state_ = State::Welcome;
+      } else {
+        state_ = noticeReturnState_;
+      }
       interactionsReady_ = false;
       requestUpdate();
       return;

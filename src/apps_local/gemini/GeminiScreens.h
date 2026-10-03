@@ -26,6 +26,7 @@ enum : fui::ActionId {
   ActionSendPrompt = 422,
   ActionClearPrompt = 423,
   ActionOpenSettings = 424,
+  ActionBackToPrompt = 425,
   ActionKeyChar = 450,
   ActionKeyShift = 451,
   ActionKeyDelete = 452,
