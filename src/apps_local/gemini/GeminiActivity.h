@@ -69,6 +69,7 @@ class GeminiActivity final : public Activity {
   bool shifted_ = false;
   bool symbols_ = false;
   std::string fullResponseText_;
+  std::string conversationTranscript_;
   int currentPage_ = 0;
   int totalPages_ = 1;
   int linesPerPage_ = 25;

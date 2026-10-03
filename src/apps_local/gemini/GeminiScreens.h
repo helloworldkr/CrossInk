@@ -27,6 +27,7 @@ enum : fui::ActionId {
   ActionClearPrompt = 423,
   ActionOpenSettings = 424,
   ActionBackToPrompt = 425,
+  ActionResumeChat = 426,
   ActionKeyChar = 450,
   ActionKeyShift = 451,
   ActionKeyDelete = 452,
@@ -47,6 +48,8 @@ struct WelcomeModel {
   std::string draftPrompt;
   bool shifted = false;
   bool symbols = false;
+  bool hasActiveChat = false;
+  int activeChatTurns = 0;
 };
 
 struct ThinkingModel {
@@ -57,12 +60,14 @@ struct ThinkingModel {
 struct ResponseModel {
   std::string prompt;
   std::string responseText;
+  std::string conversationText;
   int currentPage = 0;
   int totalPages = 1;
   int linesPerPage = 25;
   std::string modelName = "gemini-2.5-flash";
   bool savedToNotes = false;
   int turnNumber = 1;
+  int totalTurns = 1;
 };
 
 struct ErrorModel {

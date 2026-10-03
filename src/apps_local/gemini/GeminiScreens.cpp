@@ -62,7 +62,7 @@ void cardBox(toybox::Screen& screen, const fui::Rect& box) {
 
 int responseTextHeight(const fui::DeviceContext& device) {
   const int footerY = device.height - toybox::kMargin - kFooterHeight;
-  const int textY = kBodyTop + 38 + 12;
+  const int textY = kBodyTop + 22;
   const int textH = footerY - 12 - textY;
   return textH > 0 ? textH : 200;
 }
@@ -174,25 +174,57 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
   const int row2Y = row3Y - kRowGap - kRowH;          // 664 - 6 - 56 = 602
   const int row1Y = row2Y - kRowGap - kRowH;          // 602 - 6 - 56 = 540
 
-  // --- 4. Action Strip above Keyboard: CLEAR | SEND > ---
+  // --- 4. Action Strip above Keyboard ---
   const int stripH = 34;
   const int stripY = row1Y - 8 - stripH;              // 540 - 8 - 34 = 498
-  const int clearW = 90;
-  const int sendW = band.width - clearW - 8;
 
-  fui::ButtonProps clearBtn;
-  clearBtn.label = "CLEAR";
-  clearBtn.action = ActionClearPrompt;
-  clearBtn.styles = toybox::rowStyles();
-  clearBtn.text.font = toybox::kSmallFont;
-  screen.button(clearBtn, fui::makeRect(band.x, stripY, clearW, stripH));
+  if (model.hasActiveChat) {
+    constexpr int resumeW = 86;
+    constexpr int clearW = 70;
+    constexpr int gap = 6;
+    const int sendW = band.width - resumeW - clearW - gap * 2;
 
-  fui::ButtonProps sendBtn;
-  sendBtn.label = "SEND >";
-  sendBtn.action = ActionSendPrompt;
-  sendBtn.styles = toybox::invertedStyles();
-  sendBtn.text.font = toybox::kSmallFont;
-  screen.button(sendBtn, fui::makeRect(band.x + clearW + 8, stripY, sendW, stripH));
+    int curX = band.x;
+    fui::ButtonProps resumeBtn;
+    resumeBtn.label = "RESUME";
+    resumeBtn.action = ActionResumeChat;
+    resumeBtn.styles = toybox::rowStyles();
+    resumeBtn.text.font = toybox::kSmallFont;
+    screen.button(resumeBtn, fui::makeRect(curX, stripY, resumeW, stripH));
+    curX += resumeW + gap;
+
+    fui::ButtonProps clearBtn;
+    clearBtn.label = "CLEAR";
+    clearBtn.action = ActionClearPrompt;
+    clearBtn.styles = toybox::rowStyles();
+    clearBtn.text.font = toybox::kSmallFont;
+    screen.button(clearBtn, fui::makeRect(curX, stripY, clearW, stripH));
+    curX += clearW + gap;
+
+    fui::ButtonProps sendBtn;
+    sendBtn.label = "SEND REPLY >";
+    sendBtn.action = ActionSendPrompt;
+    sendBtn.styles = toybox::invertedStyles();
+    sendBtn.text.font = toybox::kSmallFont;
+    screen.button(sendBtn, fui::makeRect(curX, stripY, sendW, stripH));
+  } else {
+    const int clearW = 90;
+    const int sendW = band.width - clearW - 8;
+
+    fui::ButtonProps clearBtn;
+    clearBtn.label = "CLEAR";
+    clearBtn.action = ActionClearPrompt;
+    clearBtn.styles = toybox::rowStyles();
+    clearBtn.text.font = toybox::kSmallFont;
+    screen.button(clearBtn, fui::makeRect(band.x, stripY, clearW, stripH));
+
+    fui::ButtonProps sendBtn;
+    sendBtn.label = "SEND >";
+    sendBtn.action = ActionSendPrompt;
+    sendBtn.styles = toybox::invertedStyles();
+    sendBtn.text.font = toybox::kSmallFont;
+    screen.button(sendBtn, fui::makeRect(band.x + clearW + 8, stripY, sendW, stripH));
+  }
 
   // --- 5. Interactive Prompt Card (Between Status Line and Action Strip) ---
   const int boxY = statusY + 20;
@@ -207,20 +239,38 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
   screen.button(promptCardBtn, promptBox);
 
   if (model.draftPrompt.empty()) {
-    screen.target().text(
-        fui::makeRect(promptBox.x + 14, promptBox.y + 14, promptBox.width - 28, 22),
-        "Tap here to open full keyboard...",
-        style(toybox::kBodyFont, fui::TextAlign::Left));
+    if (model.hasActiveChat) {
+      std::string hText = "ACTIVE CHAT: " + std::to_string(model.activeChatTurns) + " TURN(S) IN MEMORY";
+      screen.target().text(
+          fui::makeRect(promptBox.x + 14, promptBox.y + 14, promptBox.width - 28, 22),
+          hText.c_str(),
+          style(toybox::kSmallFont, fui::TextAlign::Left));
 
-    screen.target().text(
-        fui::makeRect(promptBox.x + 14, promptBox.y + 44, promptBox.width - 28, 80),
-        "Ask questions, explain concepts, or brainstorm.\nOr use the on-screen keyboard below.\nTap [ PROMPTS ] for ready-made templates.",
-        style(toybox::kSmallFont, fui::TextAlign::Left, fui::Color::Black, 4));
+      screen.target().text(
+          fui::makeRect(promptBox.x + 14, promptBox.y + 42, promptBox.width - 28, 70),
+          "Tap [ RESUME ] to view conversational stream,\nor type your next question below to continue.",
+          style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 3));
 
-    screen.target().text(
-        fui::makeRect(promptBox.x + 14, promptBox.y + promptBox.height - 24, promptBox.width - 28, 18),
-        "[ Tap card to type | 0/200 ]",
-        style(toybox::kSmallFont, fui::TextAlign::Right));
+      screen.target().text(
+          fui::makeRect(promptBox.x + 14, promptBox.y + promptBox.height - 24, promptBox.width - 28, 18),
+          "[ Tap card to type reply | 0/200 ]",
+          style(toybox::kSmallFont, fui::TextAlign::Right));
+    } else {
+      screen.target().text(
+          fui::makeRect(promptBox.x + 14, promptBox.y + 14, promptBox.width - 28, 22),
+          "Tap here to open full keyboard...",
+          style(toybox::kBodyFont, fui::TextAlign::Left));
+
+      screen.target().text(
+          fui::makeRect(promptBox.x + 14, promptBox.y + 44, promptBox.width - 28, 80),
+          "Ask questions, explain concepts, or brainstorm.\nOr use the on-screen keyboard below.\nTap [ PROMPTS ] for ready-made templates.",
+          style(toybox::kSmallFont, fui::TextAlign::Left, fui::Color::Black, 4));
+
+      screen.target().text(
+          fui::makeRect(promptBox.x + 14, promptBox.y + promptBox.height - 24, promptBox.width - 28, 18),
+          "[ Tap card to type | 0/200 ]",
+          style(toybox::kSmallFont, fui::TextAlign::Right));
+    }
   } else {
     std::string promptWithCursor = model.draftPrompt + "|";
     screen.target().text(
@@ -330,43 +380,33 @@ void drawThinking(toybox::Screen& screen, const ThinkingModel& model) {
 
 void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
   char pageBuf[48];
-  if (model.turnNumber > 1) {
-    if (model.totalPages > 1) {
-      snprintf(pageBuf, sizeof(pageBuf), "Turn %d | %d/%d", model.turnNumber, model.currentPage + 1, model.totalPages);
-    } else {
-      snprintf(pageBuf, sizeof(pageBuf), "Turn %d | %s", model.turnNumber, model.modelName.c_str());
-    }
+  if (model.totalPages > 1) {
+    snprintf(pageBuf, sizeof(pageBuf), "Turn %d | Page %d/%d", model.turnNumber, model.currentPage + 1, model.totalPages);
   } else {
-    if (model.totalPages > 1) {
-      snprintf(pageBuf, sizeof(pageBuf), "Page %d of %d", model.currentPage + 1, model.totalPages);
-    } else {
-      snprintf(pageBuf, sizeof(pageBuf), "%s", model.modelName.c_str());
-    }
+    snprintf(pageBuf, sizeof(pageBuf), "Turn %d of %d", model.turnNumber, model.totalTurns);
   }
-  chrome(screen, "GEMINI", pageBuf);
+  chrome(screen, "GEMINI CHAT", pageBuf);
 
   const fui::DeviceContext& device = screen.device();
   const fui::Rect band = contentBand(device);
   const fui::Rect footer = footerBand(device);
 
-  // Top Question Banner (compact inverted black bar)
-  constexpr int bannerH = 38;
-  const fui::Rect qBanner = fui::makeRect(band.x, band.y, band.width, bannerH);
-  screen.target().fill(qBanner, fui::Paint::solid(fui::Color::Black), 4);
+  // Sub-header Info line: Model & Save status
+  const int subY = band.y;
+  std::string modelInfo = "Model: " + model.modelName;
+  std::string saveInfo = model.savedToNotes ? "Saved to disk" : "Unsaved conversation";
+  screen.target().text(fui::makeRect(band.x, subY, band.width / 2, 16), modelInfo.c_str(),
+                       style(toybox::kSmallFont, fui::TextAlign::Left));
+  screen.target().text(fui::makeRect(band.x + band.width / 2, subY, band.width / 2, 16), saveInfo.c_str(),
+                       style(toybox::kSmallFont, fui::TextAlign::Right));
 
-  std::string qText = "Q: " + model.prompt;
-  std::string qFitted = toybox::fitLines(screen.target(), qText.c_str(), qBanner.width - 24, 1,
-                                         style(toybox::kSmallFont, fui::TextAlign::Left, fui::Color::White));
-  screen.target().text(fui::makeRect(qBanner.x + 12, qBanner.y + 9, qBanner.width - 24, 20),
-                       qFitted.c_str(), style(toybox::kSmallFont, fui::TextAlign::Left, fui::Color::White));
-
-  // Response Text Area (generous vertical room in portrait)
-  const int textY = band.y + bannerH + 12;
+  // Conversational Stream Area (generous vertical room in portrait)
+  const int textY = subY + 22;
   const int textH = footer.y - 12 - textY;
   const fui::Rect textRect = fui::makeRect(band.x, static_cast<int16_t>(textY), band.width, static_cast<int16_t>(textH));
 
   fui::TextAreaProps area;
-  area.text = model.responseText.c_str();
+  area.text = model.conversationText.empty() ? model.responseText.c_str() : model.conversationText.c_str();
   area.style = style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 0);
   area.topLine = static_cast<uint32_t>(model.currentPage * model.linesPerPage);
   area.showCaret = false;

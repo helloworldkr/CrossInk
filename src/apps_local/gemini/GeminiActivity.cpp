@@ -46,6 +46,27 @@ void logGemini(const std::string& msg) {
   }
 }
 
+std::string buildConversationTranscript(const std::vector<gemini::Message>& history) {
+  if (history.empty()) return "";
+  std::string transcript;
+  transcript.reserve(4096);
+  int turn = 1;
+  for (size_t i = 0; i < history.size(); ++i) {
+    if (history[i].role == "user") {
+      if (turn > 1) {
+        transcript += "\n----------------------------------------\n\n";
+      }
+      transcript += "[YOU - Turn " + std::to_string(turn) + "]\n";
+      transcript += history[i].text + "\n\n";
+    } else {
+      transcript += "[GEMINI]\n";
+      transcript += history[i].text + "\n";
+      turn++;
+    }
+  }
+  return transcript;
+}
+
 std::string serializeConversation(const std::string& currentPrompt,
                                   const std::string& currentResponse,
                                   const std::vector<gemini::Message>& history,
@@ -319,6 +340,7 @@ void GeminiActivity::resetChat() {
   history_.clear();
   currentPrompt_.clear();
   draftPrompt_.clear();
+  conversationTranscript_.clear();
   shifted_ = false;
   symbols_ = false;
   fullResponseText_.clear();
@@ -380,6 +402,7 @@ void GeminiActivity::askPrompt(const std::string& prompt) {
   }
 
   currentPrompt_ = prompt;
+  draftPrompt_.clear();
   state_ = State::Thinking;
   renderedThinking_ = false;
   interactionsReady_ = false;
@@ -721,7 +744,9 @@ void GeminiActivity::saveResponseToNotes() {
 }
 
 void GeminiActivity::openReplyPrompt() {
-  auto keyboard = makeUniqueNoThrow<KeyboardEntryActivity>(renderer, mappedInput, "REPLY TO GEMINI", "", 200);
+  int nextTurn = static_cast<int>(history_.size() / 2) + 1;
+  std::string title = "REPLY (TURN " + std::to_string(nextTurn) + ")";
+  auto keyboard = makeUniqueNoThrow<KeyboardEntryActivity>(renderer, mappedInput, title, "", 200);
   if (!keyboard) return;
 
   startActivityForResult(std::move(keyboard), [this](const ActivityResult& result) {
@@ -825,10 +850,14 @@ bool GeminiActivity::loadConversationFromFile(const std::string& path) {
 
   lastSavedFilePath_ = path;
   savedToNotes_ = true;
+  conversationTranscript_ = buildConversationTranscript(history_);
+  if (conversationTranscript_.empty()) {
+    conversationTranscript_ = fullResponseText_;
+  }
 
   fui::GfxRendererTarget target = toybox::makeTarget(renderer, toybox::readingChromeFaces());
   int contentW = target.deviceContext().width - 2 * toybox::kMargin;
-  int totalLines = geminiui::calculateTotalLines(target, static_cast<int16_t>(contentW), fullResponseText_);
+  int totalLines = geminiui::calculateTotalLines(target, static_cast<int16_t>(contentW), conversationTranscript_);
   linesPerPage_ = geminiui::responseLinesPerPage(target, target.deviceContext());
   totalPages_ = geminiui::calculateTotalPages(totalLines, linesPerPage_);
   currentPage_ = 0;
@@ -921,13 +950,25 @@ void GeminiActivity::loop() {
       fullResponseText_ = res.text;
       history_.push_back({"user", currentPrompt_});
       history_.push_back({"model", res.text});
+      conversationTranscript_ = buildConversationTranscript(history_);
 
       fui::GfxRendererTarget target = toybox::makeTarget(renderer, toybox::readingChromeFaces());
       int contentW = target.deviceContext().width - 2 * toybox::kMargin;
-      int totalLines = geminiui::calculateTotalLines(target, static_cast<int16_t>(contentW), res.text);
+      int totalLines = geminiui::calculateTotalLines(target, static_cast<int16_t>(contentW), conversationTranscript_);
       linesPerPage_ = geminiui::responseLinesPerPage(target, target.deviceContext());
       totalPages_ = geminiui::calculateTotalPages(totalLines, linesPerPage_);
-      currentPage_ = 0;
+
+      if (history_.size() > 2) {
+        std::vector<gemini::Message> priorHistory(history_.begin(), history_.end() - 2);
+        std::string priorTranscript = buildConversationTranscript(priorHistory);
+        int priorLines = geminiui::calculateTotalLines(target, static_cast<int16_t>(contentW), priorTranscript);
+        currentPage_ = priorLines / linesPerPage_;
+      } else {
+        currentPage_ = 0;
+      }
+      if (currentPage_ >= totalPages_) currentPage_ = totalPages_ - 1;
+      if (currentPage_ < 0) currentPage_ = 0;
+
       savedToNotes_ = false;
       state_ = State::Response;
     } else {
@@ -1081,6 +1122,13 @@ void GeminiActivity::loop() {
       interactionsReady_ = false;
       requestUpdate();
       return;
+    case geminiui::ActionResumeChat:
+      if (!conversationTranscript_.empty() || !fullResponseText_.empty()) {
+        state_ = State::Response;
+      }
+      interactionsReady_ = false;
+      requestUpdate();
+      return;
     case geminiui::ActionDismissNotice:
       if (state_ == State::Thinking || state_ == State::Querying) {
         state_ = State::Welcome;
@@ -1114,6 +1162,8 @@ void GeminiActivity::render(RenderLock&&) {
       model.draftPrompt = draftPrompt_;
       model.shifted = shifted_;
       model.symbols = symbols_;
+      model.hasActiveChat = !history_.empty();
+      model.activeChatTurns = static_cast<int>(history_.size() / 2);
       geminiui::drawWelcome(screen, model);
       break;
     }
@@ -1130,13 +1180,15 @@ void GeminiActivity::render(RenderLock&&) {
       geminiui::ResponseModel model;
       model.prompt = currentPrompt_;
       model.responseText = fullResponseText_;
+      model.conversationText = conversationTranscript_.empty() ? fullResponseText_ : conversationTranscript_;
       model.currentPage = currentPage_;
       model.totalPages = totalPages_;
       model.linesPerPage = linesPerPage_;
       model.modelName = modelName_;
       model.savedToNotes = savedToNotes_;
-      model.turnNumber = static_cast<int>(history_.size() / 2);
-      if (model.turnNumber < 1) model.turnNumber = 1;
+      model.totalTurns = static_cast<int>(history_.size() / 2);
+      if (model.totalTurns < 1) model.totalTurns = 1;
+      model.turnNumber = model.totalTurns;
       geminiui::drawResponse(screen, model);
       break;
     }
