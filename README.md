@@ -42,9 +42,9 @@ This fork extends the firmware with powerful built-in apps, reading conveniences
 Have an intelligent AI reading companion right on your e-reader. Ask for clarifications on complex passages, summaries, translations, or brainstorm topics without picking up your phone or computer.
 
 <p align="center">
-  <img src="assets/gemini-ai-keyboard.png" width="380" alt="CrossInk Gemini AI with iPhone Keyboard on Xteink X4 Pro" />
+  <img src="assets/gemini-ai-screen.png" width="380" alt="CrossInk Gemini AI on Xteink X4 Pro" />
   <br>
-  <em>Interactive Gemini AI assistant with built-in iPhone-style keyboard on Xteink X4 Pro (Portrait 480×800)</em>
+  <em>CrossInk Gemini AI Assistant with maximized screen real estate, interactive prompt card, and 4-row touch keyboard on Xteink X4 Pro (Portrait 480×800)</em>
 </p>
 
 ### How It Works
@@ -54,8 +54,8 @@ Have an intelligent AI reading companion right on your e-reader. Ask for clarifi
 - **Multi-Turn Conversations**: Tap `[ REPLY ]` on any response to ask follow-up questions and continue the conversation seamlessly with full context.
 - **Save with Folder Management**: Tap `[ SAVE ]` to save the complete multi-turn conversation locally. Save to default (`/XTData/gemini_chats`), export to `/notes`, choose an existing directory, or create a new folder on the fly.
 - **Resume & Load Chats**: Tap `[ RESUME ]` on the Welcome card to jump back into your active conversation, or tap `[ CHATS ]` to browse and reload previous conversations from disk with full pagination.
-- **One-Tap Quick Actions & Settings**: Instant access to ready-made prompt templates via `[ PROMPTS ]`, saved chat history via `[ CHATS ]`, and active model selection / Wi-Fi setup via `[ SETTINGS ]`.
-- **Ready-Made Prompts**: Tap `[ PROMPTS ]` for instant 1-tap templates (*"Summarize key ideas"*, *"Explain simply (ELI5)"*, *"Translate to clear English"*, etc.).
+- **One-Tap Quick Actions & Setup**: Instant access to ready-made prompt templates via `[ PROMPT ]`, saved chat history via `[ CHATS ]`, and active model selection / Wi-Fi setup via `[ SETUP ]`.
+- **Ready-Made Prompts**: Tap `[ PROMPT ]` for instant 1-tap templates (*"Summarize key ideas"*, *"Explain simply (ELI5)"*, *"Translate to clear English"*, etc.).
 - **Direct Wi-Fi Inference**: Connects securely to Google's Gemini API over Wi-Fi.
 - **Smart Model Engine**: Defaults to `gemini-2.5-flash` with quick model switching to `gemini-2.5-flash-lite`, `gemini-2.5-pro`, or `gemini-2.0-flash`.
 - **E-Ink Paged Reading**: Long responses are cleanly formatted and paginated with simple tap/button page turns.
