@@ -59,13 +59,10 @@ constexpr int kPageBarHeight = 44;
 
 int pageBarHeight(const bool hasPages) { return hasPages ? kPageBarHeight + toybox::kGutter : 0; }
 
-// Compact gap between chrome rule and the top of the content list.
-constexpr int kTopGap = 8;
-constexpr int kBodyTop = toybox::kChromeHeight + kTopGap;
+// Top of list band: start right from bezel-safe top margin (no top header).
+constexpr int kBodyTop = toybox::kMargin;
 
 fui::Rect listBand(const fui::DeviceContext& device, const bool hasDeviceName, const bool hasPages) {
-  // From the whole chrome -- band, gap and rule -- with a compact top gap
-  // so vertical space is not wasted under the header rule.
   const int top = kBodyTop;
   return fui::makeRect(toybox::kMargin, top, device.width - 2 * toybox::kMargin,
                        device.height - toybox::kMargin - top - footerHeight(hasDeviceName) - pageBarHeight(hasPages));
@@ -125,111 +122,7 @@ int pageStepClamped(const int page, const int pageCount, const int delta) {
 void buildMenu(toybox::Screen& screen, const MenuModel& model) {
   const bool choosing = model.checks != nullptr;
 
-  fui::HeaderProps header;
-  header.title = model.title;
-  header.borderEdges = fui::EdgesNone;
-  // The corner holds the folder's mark while browsing and DONE while choosing.
-  //
-  // Only one of them at a time, and only the second is a drawn control: the way
-  // IN is the whole band, which the mark sits in and labels without being a
-  // button. The way OUT has to be a button, because a mode whose exit is
-  // invisible is a trap -- and a chip that exists only inside the mode is not
-  // the permanent furniture the first design put there.
-  if (choosing) {
-    header.trailingLabel = kDoneChip;
-    header.trailingAction = ActionChoose;
-    header.trailingStyles = toybox::bandFilledStyles();
-  } else {
-    // Room at the right of the content for the mark this file draws by hand.
-    // The component reserves it out of the title AND out of the page counter,
-    // which is the whole reason it is asked for rather than assumed: the
-    // counter used to be placed by hand against the same arithmetic, in a
-    // second copy, and a second copy is what goes wrong when the corner
-    // changes.
-    header.rightReserve = static_cast<int16_t>(toybox::kIconSize + toybox::kGutter);
-  }
-  // The chip's label takes its COLOUR from the style's foreground -- button()
-  // resolves it that way and ignores the colour on this style -- so what this
-  // line is for is the font the header measures the chip's width with. Named
-  // rather than left unset because the fit depends on it and a reader should
-  // not have to know that headerBand substitutes the same slot by default.
-  header.trailingText = screen.theme().smallText;
-  header.trailingRadius = toybox::kPillRadius / 2;
-
-  toybox::absoluteChrome(screen);
-  toybox::headerBand(screen, header);
-
-  // The band is the way into the chooser, and out of it. The whole band, not
-  // the mark alone: a 32px glyph is under half a thumb, and the rest of the
-  // strip carries nothing a tap could otherwise mean. Registered AFTER the
-  // header, so the chip inside it is registered first -- both carry the same
-  // action, so the order is belt and braces rather than load-bearing.
-  //
-  // A hit region and nothing else; a StyleSet left unset would be replaced by
-  // the default button look and paint a slab over the title.
-  {
-    fui::StyleSet invisible;
-    invisible.explicitlySet = true;
-    fui::ButtonProps band;
-    band.action = ActionChoose;
-    band.styles = invisible;
-    band.minTouchSize = 0;
-    screen.button(band, toybox::headerBandRect(screen));
-  }
-
-  const fui::Rect panel = screen.device().screen();
-
-  // Paper, because the band is a filled black slab, and only while browsing:
-  // the corner is DONE's while choosing.
-  const int16_t markX = static_cast<int16_t>(panel.width - toybox::kIconSize - toybox::kMargin);
-  if (!choosing && model.mark != nullptr) {
-    const fui::Rect markRect =
-        fui::makeRect(markX, toybox::bandCenterY(screen, toybox::kIconSize), toybox::kIconSize, toybox::kIconSize);
-    screen.target().bitmap(markRect, fui::bitmapFromIcon(*model.mark), fui::BitmapMode::Contain,
-                           fui::Paint::solid(fui::Color::White));
-  }
-
-  // Which page, in the header, where the eye already is.
-  //
-  // The page bar answers this too, and it sits at the bottom of the panel, out
-  // of the fovea while the eyes are on the rows. A cold tester did not misread
-  // the bar; they never looked at it, opened a game from a row position they
-  // had learned on another page, and got a different game. So the count is said
-  // twice: once beside the folder's name, which is the first thing read, and
-  // once on the control that changes it.
-  //
-  // Placed by hand, at UI size, with its INK centred in the visible band --
-  // which is the same rule the mark beside it uses, and is why the two line up.
-  // The component's own rightLabel slot would place it for us and sits it on
-  // the TITLE's line box instead: bottom-aligned to a display cut whose line
-  // box runs well below its glyphs, so a small label lands under the baseline
-  // and reads as dropped. Mario saw it in one screenshot.
-  //
-  // What it has to stop before is whichever thing the corner is holding, and
-  // those are different widths. The chip's is the header component's own
-  // arithmetic -- label + 20, inset 4 from the band's right edge -- mirrored
-  // here in the same order, the way toybox::headerTitleWidth mirrors the rest
-  // of that layout rather than guessing at it.
-  if (model.pageCount > 1) {
-    int16_t cornerX = markX;
-    if (choosing) {
-      const int16_t chipW = static_cast<int16_t>(
-          screen.target().measureText(header.trailingText.font, kDoneChip, header.trailingText).width + 20);
-      cornerX = static_cast<int16_t>(panel.width - 4 - chipW);
-    }
-    char counter[toybox::kSlashCounterChars];
-    snprintf(counter, sizeof(counter), "%d/%d", model.page + 1, model.pageCount);
-    fui::TextStyle style;
-    style.font = toybox::kUiFont;
-    style.align = fui::TextAlign::Right;
-    // Paper, or it is painted black on a black band and simply is not there.
-    style.color = fui::Color::White;
-    const fui::Rect box = fui::makeRect(0, toybox::bandCenterY(screen, toybox::kUiCut.inkHeight),
-                                        static_cast<int16_t>(cornerX - toybox::kGutter), toybox::kUiCut.inkHeight);
-    screen.target().text(toybox::inkCentred(box, toybox::kUiCut), counter, style);
-  }
-
-  screen.insetContent(fui::Insets{kTopGap, toybox::kMargin, toybox::kMargin, toybox::kMargin});
+  screen.setContentMarginFromScreen(fui::Insets{toybox::kMargin, toybox::kMargin, toybox::kMargin, toybox::kMargin});
 
   // Taken before the list, so the list can never grow into it.
   //

@@ -22,7 +22,7 @@
 - **Go to Book Folder**: Added an option in the reader menu and bottom swipe-up drawer to immediately exit back to the folder containing the current book in the file browser with the book highlighted and reading progress saved.
 - **Starred Books**: Mark any book with a star (favorite) directly from the reader menu, touch bottom drawer, or book action menus across the system (File Browser, Recent Books, and Recent Books Grid). Easily access all starred books from a dedicated Starred Books (★) button on the Home screen.
 
-- **Apps & Gemini Layout Optimization**: Reclaimed vertical screen space by replacing the excessive 36px top blank gutter under the header divider rule with a clean 8px padding on both the Apps launcher shelf and Gemini AI screens. App rows sit 28px higher, the Gemini Welcome prompt box gains 30+ pixels of vertical space, and the Gemini chat response view gains 34px of reading area.
+- **Maximized Screen Space (Apps & Gemini)**: Removed the redundant top black header band from both the Apps Launcher screen and Gemini AI screens. Content begins directly from the bezel-safe top margin (16px), expanding the Gemini prompt card height to 398px (+90+ pixels gained) and conversational response reading height by ~70px.
 - **iOS-Style Keyboard**: Sized and arranged on-screen keyboard into an iPhone-style 4-row layout with dedicated `123` / `#+=` layers, 4px key spacing, and rounded keycaps to prevent accidental touches.
 - PNG, XTC, and image-dithering scratch buffers use fewer heap allocations to reduce fragmentation.
 - The shared settings catalog keeps its initial allocation instead of retaining unused vector capacity.

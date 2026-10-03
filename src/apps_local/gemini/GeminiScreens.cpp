@@ -11,8 +11,7 @@
 namespace geminiui {
 namespace {
 
-constexpr int kTopGap = 8;
-constexpr int kBodyTop = toybox::kChromeHeight + kTopGap;
+constexpr int kBodyTop = toybox::kMargin;
 constexpr int kFooterHeight = toybox::kPillHeight;
 
 fui::TextStyle style(const fui::FontId font, const fui::TextAlign align = fui::TextAlign::Left,
@@ -36,23 +35,9 @@ fui::Rect contentBand(const fui::DeviceContext& device) {
                        static_cast<int16_t>(footer.y - toybox::kGutter - kBodyTop));
 }
 
-void chrome(toybox::Screen& screen, const char* title, const char* rightLabel = nullptr) {
-  fui::TextStyle titleStyle = screen.theme().titleText;
-  titleStyle.font = toybox::kDisplayFont;
-  fui::HeaderProps header;
-  header.title = title;
-  header.titleText = titleStyle;
-  header.rightLabel = rightLabel;
-  header.borderEdges = fui::EdgesNone;
-  if (rightLabel != nullptr) {
-    header.subtitleText = screen.theme().smallText;
-    header.subtitleText.font = toybox::kTileFont;
-    header.subtitleText.color = fui::Color::White;
-    header.subtitleText.align = fui::TextAlign::Right;
-  }
-  toybox::absoluteChrome(screen);
-  toybox::headerBand(screen, header);
-  screen.insetContent(fui::Insets{kTopGap, toybox::kMargin, toybox::kMargin, toybox::kMargin});
+void chrome(toybox::Screen& screen, const char* /*title*/ = nullptr, const char* /*rightLabel*/ = nullptr) {
+  screen.setContentMarginFromScreen(
+      fui::Insets{toybox::kMargin, toybox::kMargin, toybox::kMargin, toybox::kMargin});
 }
 
 void cardBox(toybox::Screen& screen, const fui::Rect& box) {
@@ -63,7 +48,7 @@ void cardBox(toybox::Screen& screen, const fui::Rect& box) {
 
 int responseTextHeight(const fui::DeviceContext& device) {
   const int footerY = device.height - toybox::kMargin - kFooterHeight;
-  const int textY = kBodyTop + 20;
+  const int textY = kBodyTop + 24;
   const int textH = footerY - 12 - textY;
   return textH > 0 ? textH : 200;
 }
@@ -121,14 +106,14 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
   const fui::DeviceContext& device = screen.device();
   const fui::Rect band = contentBand(device);
 
-  // --- 1. Top Action Bar: PROMPTS | CHATS | SETTINGS ---
+  // --- 1. Top Action Bar: PROMPT | CHATS | SETUP ---
   constexpr int barH = 38;
   constexpr int gap = 8;
   const int btnW = (band.width - gap * 2) / 3;
 
   int curX = band.x;
   fui::ButtonProps promptsBtn;
-  promptsBtn.label = "PROMPTS";
+  promptsBtn.label = "PROMPT";
   promptsBtn.action = ActionQuickPrompts;
   promptsBtn.styles = toybox::rowStyles();
   promptsBtn.text.font = toybox::kSmallFont;
@@ -144,23 +129,24 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
   curX += btnW + gap;
 
   fui::ButtonProps settingsBtn;
-  settingsBtn.label = "SETTINGS";
+  settingsBtn.label = "SETUP";
   settingsBtn.action = ActionOpenSettings;
   settingsBtn.styles = toybox::rowStyles();
   settingsBtn.text.font = toybox::kSmallFont;
   screen.button(settingsBtn, fui::makeRect(curX, band.y, band.width - (curX - band.x), barH));
 
   // --- 2. Status Line (Separated columns, no overlap) ---
-  const int statusY = band.y + barH + 6;
-  std::string wifiStr = model.wifiConnected ? ("Wi-Fi: " + (model.wifiSsid.empty() ? "Connected" : model.wifiSsid))
-                                            : (model.wifiConnecting ? "Wi-Fi: Connecting..." : "Wi-Fi: Offline");
-  std::string keyStr = model.tokenFound ? "Key: Ready" : "Key: Missing";
+  const int statusY = band.y + barH + 10;
+  std::string wifiStr = model.wifiConnected ? ("Wi-Fi: " + (model.wifiSsid.empty() ? "Online" : model.wifiSsid))
+                                            : (model.wifiConnecting ? "Wi-Fi: Connecting..." : "Wi-Fi: Off");
+  std::string keyStr = model.tokenFound ? "Ready" : "No Key";
+  std::string rightStr = model.modelName.empty() ? keyStr : (model.modelName + " | " + keyStr);
 
-  const int wifiW = 270;
+  const int wifiW = 120;
   const int keyW = band.width - wifiW;
   screen.target().text(fui::makeRect(band.x, statusY, wifiW, 16), wifiStr.c_str(),
                        style(toybox::kSmallFont, fui::TextAlign::Left));
-  screen.target().text(fui::makeRect(band.x + wifiW, statusY, keyW, 16), keyStr.c_str(),
+  screen.target().text(fui::makeRect(band.x + wifiW, statusY, keyW, 16), rightStr.c_str(),
                        style(toybox::kSmallFont, fui::TextAlign::Right));
 
   // --- 3. Keyboard Geometry (Docked at bottom of 800px Portrait screen) ---
@@ -180,8 +166,8 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
   const int stripY = row1Y - 8 - stripH;              // 540 - 8 - 34 = 498
 
   if (model.hasActiveChat) {
-    constexpr int resumeW = 86;
-    constexpr int clearW = 70;
+    constexpr int resumeW = 92;
+    constexpr int clearW = 76;
     constexpr int gap = 6;
     const int sendW = band.width - resumeW - clearW - gap * 2;
 
@@ -195,7 +181,7 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
     curX += resumeW + gap;
 
     fui::ButtonProps clearBtn;
-    clearBtn.label = "CLEAR";
+    clearBtn.label = "CLR";
     clearBtn.action = ActionClearPrompt;
     clearBtn.styles = toybox::rowStyles();
     clearBtn.text.font = toybox::kSmallFont;
@@ -209,7 +195,7 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
     sendBtn.text.font = toybox::kSmallFont;
     screen.button(sendBtn, fui::makeRect(curX, stripY, sendW, stripH));
   } else {
-    const int clearW = 90;
+    const int clearW = 104;
     const int sendW = band.width - clearW - 8;
 
     fui::ButtonProps clearBtn;
@@ -228,7 +214,7 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
   }
 
   // --- 5. Interactive Prompt Card (Between Status Line and Action Strip) ---
-  const int boxY = statusY + 20;
+  const int boxY = statusY + 26;
   const int boxH = stripY - 8 - boxY;
   const fui::Rect promptBox = fui::makeRect(band.x, boxY, band.width, boxH);
 
@@ -248,9 +234,14 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
           style(toybox::kSmallFont, fui::TextAlign::Left));
 
       screen.target().text(
-          fui::makeRect(promptBox.x + 14, promptBox.y + 42, promptBox.width - 28, 70),
-          "Tap [ RESUME ] to view conversational stream,\nor type your next question below to continue.",
-          style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 3));
+          fui::makeRect(promptBox.x + 14, promptBox.y + 42, promptBox.width - 28, 22),
+          "Tap [ RESUME ] to view conversational stream,",
+          style(toybox::kBodyFont, fui::TextAlign::Left));
+
+      screen.target().text(
+          fui::makeRect(promptBox.x + 14, promptBox.y + 68, promptBox.width - 28, 22),
+          "or type your next question below to continue.",
+          style(toybox::kBodyFont, fui::TextAlign::Left));
 
       screen.target().text(
           fui::makeRect(promptBox.x + 14, promptBox.y + promptBox.height - 24, promptBox.width - 28, 18),
@@ -259,13 +250,18 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
     } else {
       screen.target().text(
           fui::makeRect(promptBox.x + 14, promptBox.y + 14, promptBox.width - 28, 22),
-          "Tap here to open full keyboard...",
+          "Ask Gemini anything...",
           style(toybox::kBodyFont, fui::TextAlign::Left));
 
       screen.target().text(
-          fui::makeRect(promptBox.x + 14, promptBox.y + 44, promptBox.width - 28, 80),
-          "Ask questions, explain concepts, or brainstorm.\nOr use the on-screen keyboard below.\nTap [ PROMPTS ] for ready-made templates.",
-          style(toybox::kSmallFont, fui::TextAlign::Left, fui::Color::Black, 4));
+          fui::makeRect(promptBox.x + 14, promptBox.y + 44, promptBox.width - 28, 20),
+          "Ask questions or explain concepts.",
+          style(toybox::kSmallFont, fui::TextAlign::Left));
+
+      screen.target().text(
+          fui::makeRect(promptBox.x + 14, promptBox.y + 68, promptBox.width - 28, 20),
+          "Type below or tap [ PROMPT ].",
+          style(toybox::kSmallFont, fui::TextAlign::Left));
 
       screen.target().text(
           fui::makeRect(promptBox.x + 14, promptBox.y + promptBox.height - 24, promptBox.width - 28, 18),
@@ -277,7 +273,7 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
     screen.target().text(
         fui::makeRect(promptBox.x + 14, promptBox.y + 12, promptBox.width - 28, promptBox.height - 36),
         promptWithCursor.c_str(),
-        style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 11));
+        style(toybox::kBodyFont, fui::TextAlign::Left, fui::Color::Black, 14));
 
     std::string countStr = std::to_string(model.draftPrompt.size()) + "/200  (Tap to edit)";
     screen.target().text(
@@ -305,7 +301,7 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
 
   // Row 3 (Shift 66px + 7 keys + Del 67px)
   fui::Rect shiftRect = fui::makeRect(kStartX, row3Y, 66, kRowH);
-  const char* shiftLabel = model.symbols ? "#+=" : (model.shifted ? "CAPS" : "SHIFT");
+  const char* shiftLabel = model.symbols ? "#+=" : (model.shifted ? "CAPS" : "CAP");
   drawIphoneKey(screen, shiftRect, shiftLabel, ActionKeyShift, 0, model.shifted);
 
   const int row3KeysX = kStartX + 66 + kKeyGap;
@@ -392,17 +388,24 @@ void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
   const fui::Rect band = contentBand(device);
   const fui::Rect footer = footerBand(device);
 
-  // Sub-header Info line: Model & Save status
+  // Sub-header Info line: Left = GEMINI: pageBuf, Right = modelName | Saved/Unsaved
   const int subY = band.y;
-  std::string modelInfo = "Model: " + model.modelName;
-  std::string saveInfo = model.savedToNotes ? "Saved to disk" : "Unsaved conversation";
-  screen.target().text(fui::makeRect(band.x, subY, band.width / 2, 16), modelInfo.c_str(),
+  std::string leftInfo = std::string("GEMINI: ") + pageBuf;
+  std::string saveStr = model.savedToNotes ? "Saved" : "Unsaved";
+  std::string rightInfo = model.modelName.empty() ? saveStr : (model.modelName + " | " + saveStr);
+
+  const int leftW = 220;
+  const int rightW = band.width - leftW;
+  screen.target().text(fui::makeRect(band.x, subY, leftW, 16), leftInfo.c_str(),
                        style(toybox::kSmallFont, fui::TextAlign::Left));
-  screen.target().text(fui::makeRect(band.x + band.width / 2, subY, band.width / 2, 16), saveInfo.c_str(),
+  screen.target().text(fui::makeRect(band.x + leftW, subY, rightW, 16), rightInfo.c_str(),
                        style(toybox::kSmallFont, fui::TextAlign::Right));
 
+  // Hairline separator
+  screen.target().fill(fui::makeRect(band.x, subY + 18, band.width, 1), fui::Paint::solid(fui::Color::Black));
+
   // Conversational Stream Area (generous vertical room in portrait)
-  const int textY = subY + 20;
+  const int textY = subY + 24;
   const int textH = footer.y - 12 - textY;
   const fui::Rect textRect = fui::makeRect(band.x, static_cast<int16_t>(textY), band.width, static_cast<int16_t>(textH));
 
