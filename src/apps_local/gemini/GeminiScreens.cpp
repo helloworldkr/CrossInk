@@ -120,12 +120,13 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
   const fui::DeviceContext& device = screen.device();
   const fui::Rect band = contentBand(device);
 
-  // --- 1. Action Bar: PROMPTS | CLEAR | SEND ➔ ---
+  // --- 1. Action Bar: PROMPTS | SAVED CHATS | CLEAR | SEND ➔ ---
   constexpr int barH = 40;
-  constexpr int gap = 8;
-  const int promptBtnW = 146;
-  const int clearBtnW = 76;
-  const int sendBtnW = band.width - promptBtnW - clearBtnW - gap * 2;
+  constexpr int gap = 6;
+  const int promptBtnW = 124;
+  const int chatsBtnW = 104;
+  const int clearBtnW = 66;
+  const int sendBtnW = band.width - promptBtnW - chatsBtnW - clearBtnW - gap * 3;
 
   int curX = band.x;
   fui::ButtonProps promptsBtn;
@@ -135,6 +136,14 @@ void drawWelcome(toybox::Screen& screen, const WelcomeModel& model) {
   promptsBtn.text.font = toybox::kSmallFont;
   screen.button(promptsBtn, fui::makeRect(curX, band.y, promptBtnW, barH));
   curX += promptBtnW + gap;
+
+  fui::ButtonProps chatsBtn;
+  chatsBtn.label = "\U0001F4C2 CHATS";
+  chatsBtn.action = ActionSavedChats;
+  chatsBtn.styles = toybox::rowStyles();
+  chatsBtn.text.font = toybox::kSmallFont;
+  screen.button(chatsBtn, fui::makeRect(curX, band.y, chatsBtnW, barH));
+  curX += chatsBtnW + gap;
 
   fui::ButtonProps clearBtn;
   clearBtn.label = "CLEAR";
@@ -303,11 +312,19 @@ void drawThinking(toybox::Screen& screen, const ThinkingModel& model) {
 }
 
 void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
-  char pageBuf[32];
-  if (model.totalPages > 1) {
-    snprintf(pageBuf, sizeof(pageBuf), "Page %d of %d", model.currentPage + 1, model.totalPages);
+  char pageBuf[48];
+  if (model.turnNumber > 1) {
+    if (model.totalPages > 1) {
+      snprintf(pageBuf, sizeof(pageBuf), "Turn %d \u2022 %d/%d", model.turnNumber, model.currentPage + 1, model.totalPages);
+    } else {
+      snprintf(pageBuf, sizeof(pageBuf), "Turn %d \u2022 %s", model.turnNumber, model.modelName.c_str());
+    }
   } else {
-    snprintf(pageBuf, sizeof(pageBuf), "%s", model.modelName.c_str());
+    if (model.totalPages > 1) {
+      snprintf(pageBuf, sizeof(pageBuf), "Page %d of %d", model.currentPage + 1, model.totalPages);
+    } else {
+      snprintf(pageBuf, sizeof(pageBuf), "%s", model.modelName.c_str());
+    }
   }
   chrome(screen, "GEMINI", pageBuf);
 
@@ -340,10 +357,11 @@ void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
 
   // Bottom Footer Navigation & Actions for Portrait (448px width)
   if (model.totalPages > 1) {
-    // 4 buttons: [ < ] [ ASK NEXT ] [ SAVE NOTE ] [ > ]
-    constexpr int arrowW = 54;
-    constexpr int btnGap = 8;
-    const int midW = (footer.width - arrowW * 2 - btnGap * 3) / 2;
+    // 5 buttons: [ < ] [ REPLY ] [ SAVE ] [ NEW ] [ > ]
+    constexpr int arrowW = 46;
+    constexpr int btnGap = 6;
+    constexpr int newW = 78;
+    const int midW = (footer.width - arrowW * 2 - newW - btnGap * 4) / 2;
 
     int curX = footer.x;
 
@@ -354,19 +372,26 @@ void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
     screen.button(prevBtn, fui::makeRect(curX, footer.y, arrowW, footer.height));
     curX += arrowW + btnGap;
 
-    fui::ButtonProps askBtn;
-    askBtn.label = "ASK NEXT";
-    askBtn.action = ActionAsk;
-    askBtn.styles = toybox::invertedStyles();
-    screen.button(askBtn, fui::makeRect(curX, footer.y, midW, footer.height));
+    fui::ButtonProps replyBtn;
+    replyBtn.label = "REPLY";
+    replyBtn.action = ActionAsk;
+    replyBtn.styles = toybox::invertedStyles();
+    screen.button(replyBtn, fui::makeRect(curX, footer.y, midW, footer.height));
     curX += midW + btnGap;
 
     fui::ButtonProps saveBtn;
-    saveBtn.label = model.savedToNotes ? "SAVED ✓" : "SAVE NOTE";
+    saveBtn.label = model.savedToNotes ? "SAVED \u2713" : "SAVE";
     saveBtn.action = ActionSaveNote;
     saveBtn.styles = toybox::rowStyles();
     screen.button(saveBtn, fui::makeRect(curX, footer.y, midW, footer.height));
     curX += midW + btnGap;
+
+    fui::ButtonProps newBtn;
+    newBtn.label = "NEW";
+    newBtn.action = ActionNewChat;
+    newBtn.styles = toybox::rowStyles();
+    screen.button(newBtn, fui::makeRect(curX, footer.y, newW, footer.height));
+    curX += newW + btnGap;
 
     fui::ButtonProps nextBtn;
     nextBtn.label = ">";
@@ -374,18 +399,18 @@ void drawResponse(toybox::Screen& screen, const ResponseModel& model) {
     nextBtn.styles = (model.currentPage < model.totalPages - 1) ? toybox::rowStyles() : toybox::disabledButtonStyles();
     screen.button(nextBtn, fui::makeRect(curX, footer.y, arrowW, footer.height));
   } else {
-    // 3 buttons across portrait width: [ ASK NEXT ] [ SAVE NOTE ] [ NEW CHAT ]
+    // 3 buttons across portrait width: [ REPLY ] [ SAVE ] [ NEW CHAT ]
     constexpr int gap = 8;
     const int btnW = (footer.width - gap * 2) / 3;
 
-    fui::ButtonProps askBtn;
-    askBtn.label = "ASK NEXT";
-    askBtn.action = ActionAsk;
-    askBtn.styles = toybox::invertedStyles();
-    screen.button(askBtn, fui::makeRect(footer.x, footer.y, btnW, footer.height));
+    fui::ButtonProps replyBtn;
+    replyBtn.label = "REPLY";
+    replyBtn.action = ActionAsk;
+    replyBtn.styles = toybox::invertedStyles();
+    screen.button(replyBtn, fui::makeRect(footer.x, footer.y, btnW, footer.height));
 
     fui::ButtonProps saveBtn;
-    saveBtn.label = model.savedToNotes ? "SAVED ✓" : "SAVE NOTE";
+    saveBtn.label = model.savedToNotes ? "SAVED \u2713" : "SAVE";
     saveBtn.action = ActionSaveNote;
     saveBtn.styles = toybox::rowStyles();
     screen.button(saveBtn, fui::makeRect(footer.x + btnW + gap, footer.y, btnW, footer.height));

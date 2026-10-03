@@ -33,10 +33,10 @@ std::string Client::buildPayload(const std::string& prompt, const std::vector<Me
   // Contents (history + current prompt)
   JsonArray contents = doc["contents"].to<JsonArray>();
 
-  // Add up to last 4 turns of history to preserve context while controlling token size
+  // Add up to last 8 messages (4 turns) of history to preserve context while controlling token size
   size_t startIdx = 0;
-  if (history.size() > 4) {
-    startIdx = history.size() - 4;
+  if (history.size() > 8) {
+    startIdx = history.size() - 8;
   }
   for (size_t i = startIdx; i < history.size(); ++i) {
     JsonObject msgObj = contents.add<JsonObject>();

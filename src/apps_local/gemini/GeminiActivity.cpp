@@ -46,6 +46,132 @@ void logGemini(const std::string& msg) {
   }
 }
 
+std::string serializeConversation(const std::string& currentPrompt,
+                                  const std::string& currentResponse,
+                                  const std::vector<gemini::Message>& history,
+                                  const std::string& modelName) {
+  std::string out;
+  out.reserve(2048);
+  out += "# Gemini Conversation: " + currentPrompt + "\n";
+  out += "<!-- GEMINI_CONVERSATION_START -->\n";
+  out += "<!-- MODEL: " + modelName + " -->\n\n";
+
+  if (!history.empty()) {
+    for (const auto& msg : history) {
+      if (msg.role == "user") {
+        out += "### User\n" + msg.text + "\n\n";
+      } else {
+        out += "### Gemini\n" + msg.text + "\n\n";
+      }
+    }
+  } else {
+    out += "### User\n" + currentPrompt + "\n\n";
+    out += "### Gemini\n" + currentResponse + "\n\n";
+  }
+  return out;
+}
+
+bool parseConversation(const std::string& content,
+                       std::vector<gemini::Message>& history,
+                       std::string& latestPrompt,
+                       std::string& latestResponse) {
+  history.clear();
+  latestPrompt.clear();
+  latestResponse.clear();
+
+  if (content.empty()) return false;
+
+  size_t userPos = content.find("### User\n");
+  if (userPos != std::string::npos) {
+    size_t cursor = userPos;
+    while (cursor < content.size()) {
+      size_t uStart = content.find("### User\n", cursor);
+      if (uStart == std::string::npos) break;
+      uStart += 9;
+
+      size_t mStart = content.find("\n### Gemini\n", uStart);
+      if (mStart == std::string::npos) {
+        std::string uText = content.substr(uStart);
+        while (!uText.empty() && (uText.back() == '\n' || uText.back() == '\r')) uText.pop_back();
+        history.push_back({"user", uText});
+        latestPrompt = uText;
+        break;
+      }
+
+      std::string uText = content.substr(uStart, mStart - uStart);
+      while (!uText.empty() && (uText.back() == '\n' || uText.back() == '\r')) uText.pop_back();
+      history.push_back({"user", uText});
+      latestPrompt = uText;
+
+      mStart += 13;
+      size_t nextU = content.find("\n### User\n", mStart);
+      std::string mText;
+      if (nextU != std::string::npos) {
+        mText = content.substr(mStart, nextU - mStart);
+        cursor = nextU + 1;
+      } else {
+        mText = content.substr(mStart);
+        cursor = content.size();
+      }
+      while (!mText.empty() && (mText.back() == '\n' || mText.back() == '\r')) mText.pop_back();
+      history.push_back({"model", mText});
+      latestResponse = mText;
+    }
+    return !history.empty();
+  }
+
+  size_t hashPos = content.find("# ");
+  if (hashPos != std::string::npos) {
+    size_t lineEnd = content.find("\n", hashPos);
+    if (lineEnd != std::string::npos) {
+      latestPrompt = content.substr(hashPos + 2, lineEnd - (hashPos + 2));
+      while (!latestPrompt.empty() && (latestPrompt.back() == '\r')) latestPrompt.pop_back();
+      latestResponse = content.substr(lineEnd + 1);
+      while (!latestResponse.empty() && (latestResponse.front() == '\n' || latestResponse.front() == '\r')) {
+        latestResponse.erase(0, 1);
+      }
+      history.push_back({"user", latestPrompt});
+      history.push_back({"model", latestResponse});
+      return true;
+    }
+  }
+
+  return false;
+}
+
+std::vector<std::string> getSavedFolderList() {
+  std::vector<std::string> list = {"/XTData/gemini_chats", "/notes"};
+  String saved = Storage.readFile("/XTData/gemini_folders.txt");
+  if (saved.length() > 0) {
+    std::string s(saved.c_str());
+    size_t start = 0;
+    while (start < s.size()) {
+      size_t end = s.find('\n', start);
+      std::string f = (end != std::string::npos) ? s.substr(start, end - start) : s.substr(start);
+      while (!f.empty() && (f.back() == '\r' || f.back() == ' ')) f.pop_back();
+      if (!f.empty() && std::find(list.begin(), list.end(), f) == list.end()) {
+        list.push_back(f);
+      }
+      if (end == std::string::npos) break;
+      start = end + 1;
+    }
+  }
+  return list;
+}
+
+void addSavedFolder(const std::string& folder) {
+  auto list = getSavedFolderList();
+  if (std::find(list.begin(), list.end(), folder) == list.end()) {
+    list.push_back(folder);
+    std::string out;
+    for (const auto& f : list) {
+      out += f + "\n";
+    }
+    Storage.ensureDirectoryExists("/XTData");
+    Storage.writeFile("/XTData/gemini_folders.txt", out.c_str());
+  }
+}
+
 }  // namespace
 
 GeminiActivity::GeminiActivity(GfxRenderer& renderer, MappedInputManager& mappedInput)
@@ -199,6 +325,7 @@ void GeminiActivity::resetChat() {
   currentPage_ = 0;
   totalPages_ = 1;
   savedToNotes_ = false;
+  lastSavedFilePath_.clear();
   state_ = State::Welcome;
   interactionsReady_ = false;
   requestUpdate();
@@ -407,6 +534,7 @@ void GeminiActivity::openSettingsMenu() {
       "Model: " + modelName_,
       WiFi.status() == WL_CONNECTED ? ("Wi-Fi: " + std::string(WiFi.SSID().c_str())) : "Connect to Wi-Fi",
       tokenInfo_.isFound ? "Update API Key (Ready)" : "Enter Gemini API Key",
+      "Saved Chats (Load Conversation)",
       "Clear Draft Prompt",
       "New Chat (Reset Session)",
   };
@@ -429,9 +557,11 @@ void GeminiActivity::openSettingsMenu() {
     } else if (sel.index == 2) {
       openKeyboardForToken();
     } else if (sel.index == 3) {
+      openSavedChatsSelection();
+    } else if (sel.index == 4) {
       draftPrompt_.clear();
       requestUpdate();
-    } else if (sel.index == 4) {
+    } else if (sel.index == 5) {
       resetChat();
     }
   });
@@ -473,18 +603,99 @@ void GeminiActivity::openQuickPromptsSelection() {
   });
 }
 
-void GeminiActivity::saveResponseToNotes() {
+void GeminiActivity::openSaveMenu() {
   if (fullResponseText_.empty()) return;
 
-  Storage.ensureDirectoryExists("/notes");
+  std::vector<std::string> options = {
+      "Quick Save (/XTData/gemini_chats)",
+      "Save to Notes (/notes)",
+      "Choose Folder...",
+      "Create New Folder...",
+  };
+
+  auto activity = makeUniqueNoThrow<OptionSelectionActivity>(
+      renderer, mappedInput, "GeminiSaveMenu", StrId::STR_SELECT, options, 0, false, true);
+  if (!activity) return;
+
+  startActivityForResult(std::move(activity), [this](const ActivityResult& result) {
+    interactionsReady_ = false;
+    if (result.isCancelled) {
+      requestUpdate();
+      return;
+    }
+    const auto& sel = std::get<OptionSelectionResult>(result.data);
+    if (sel.index == 0) {
+      saveConversationToFolder("/XTData/gemini_chats");
+    } else if (sel.index == 1) {
+      saveConversationToFolder("/notes");
+    } else if (sel.index == 2) {
+      openFolderSelectionForSave();
+    } else if (sel.index == 3) {
+      openCreateFolderForSave();
+    }
+  });
+}
+
+void GeminiActivity::openFolderSelectionForSave() {
+  std::vector<std::string> folders = getSavedFolderList();
+  if (folders.empty()) {
+    folders.push_back("/XTData/gemini_chats");
+    folders.push_back("/notes");
+  }
+
+  auto activity = makeUniqueNoThrow<OptionSelectionActivity>(
+      renderer, mappedInput, "GeminiPickFolder", StrId::STR_SELECT, folders, 0, false, true);
+  if (!activity) return;
+
+  startActivityForResult(std::move(activity), [this, folders](const ActivityResult& result) {
+    interactionsReady_ = false;
+    if (result.isCancelled) {
+      requestUpdate();
+      return;
+    }
+    const auto& sel = std::get<OptionSelectionResult>(result.data);
+    if (sel.index < folders.size()) {
+      saveConversationToFolder(folders[sel.index]);
+    }
+  });
+}
+
+void GeminiActivity::openCreateFolderForSave() {
+  auto keyboard = makeUniqueNoThrow<KeyboardEntryActivity>(renderer, mappedInput, "NEW FOLDER NAME", "", 32);
+  if (!keyboard) return;
+
+  startActivityForResult(std::move(keyboard), [this](const ActivityResult& result) {
+    interactionsReady_ = false;
+    if (result.isCancelled) {
+      requestUpdate();
+      return;
+    }
+    const auto& entered = std::get<KeyboardResult>(result.data);
+    if (!entered.text.empty()) {
+      std::string safe = sanitizeFilename(entered.text);
+      if (!safe.empty()) {
+        std::string folderPath = "/XTData/" + safe;
+        addSavedFolder(folderPath);
+        saveConversationToFolder(folderPath);
+        return;
+      }
+    }
+    requestUpdate();
+  });
+}
+
+void GeminiActivity::saveConversationToFolder(const std::string& folder) {
+  if (fullResponseText_.empty()) return;
+
+  Storage.ensureDirectoryExists(folder.c_str());
 
   std::string sanitized = sanitizeFilename(currentPrompt_);
-  std::string path = "/notes/Gemini - " + sanitized + ".md";
-  std::string content = "# " + currentPrompt_ + "\n\n" + fullResponseText_ + "\n";
+  std::string path = folder + "/Gemini - " + sanitized + ".md";
+  std::string content = serializeConversation(currentPrompt_, fullResponseText_, history_, modelName_);
 
   if (!Storage.writeFile(path.c_str(), content.c_str())) {
     noticeTitle_ = "Save Failed";
-    noticeMessage_ = "Could not write note file to SD card.";
+    noticeMessage_ = "Could not write file to:\n" + path;
     noticeReturnState_ = State::Response;
     state_ = State::Notice;
     interactionsReady_ = false;
@@ -493,12 +704,139 @@ void GeminiActivity::saveResponseToNotes() {
   }
 
   savedToNotes_ = true;
-  noticeTitle_ = "Saved to Notes";
-  noticeMessage_ = "Response saved to:\n" + path + "\nYou can view it in the Notes app.";
+  lastSavedFilePath_ = path;
+  int turns = static_cast<int>(history_.size() / 2);
+  if (turns < 1) turns = 1;
+  noticeTitle_ = "Conversation Saved";
+  noticeMessage_ = "Saved " + std::to_string(turns) + " turn(s) to:\n" + path +
+                   "\n\nYou can reload and continue this chat anytime from [ CHATS ].";
   noticeReturnState_ = State::Response;
   state_ = State::Notice;
   interactionsReady_ = false;
   requestUpdate();
+}
+
+void GeminiActivity::saveResponseToNotes() {
+  openSaveMenu();
+}
+
+void GeminiActivity::openReplyPrompt() {
+  auto keyboard = makeUniqueNoThrow<KeyboardEntryActivity>(renderer, mappedInput, "REPLY TO GEMINI", "", 200);
+  if (!keyboard) return;
+
+  startActivityForResult(std::move(keyboard), [this](const ActivityResult& result) {
+    interactionsReady_ = false;
+    if (result.isCancelled) {
+      requestUpdate();
+      return;
+    }
+    const auto& entered = std::get<KeyboardResult>(result.data);
+    if (!entered.text.empty()) {
+      askPrompt(entered.text);
+    } else {
+      requestUpdate();
+    }
+  });
+}
+
+struct SavedChatEntry {
+  std::string filePath;
+  std::string displayLabel;
+};
+
+void GeminiActivity::openSavedChatsSelection() {
+  std::vector<SavedChatEntry> chatList;
+
+  std::vector<std::string> folders = getSavedFolderList();
+  for (const auto& folder : folders) {
+    auto files = Storage.listFiles(folder.c_str(), 100);
+    for (const auto& f : files) {
+      std::string fname(f.c_str());
+      if (fname.size() > 3 && fname.substr(fname.size() - 3) == ".md") {
+        std::string fullPath = folder + "/" + fname;
+        std::string label = fname;
+        if (label.rfind("Gemini - ", 0) == 0) {
+          label = label.substr(9);
+        }
+        if (label.size() > 3 && label.substr(label.size() - 3) == ".md") {
+          label = label.substr(0, label.size() - 3);
+        }
+        label += " (" + folder + ")";
+        chatList.push_back({fullPath, label});
+      }
+    }
+  }
+
+  if (chatList.empty()) {
+    noticeTitle_ = "No Saved Chats";
+    noticeMessage_ = "No saved conversations found.\n\nWhen Gemini responds, tap [ SAVE ] to save your conversations.";
+    noticeReturnState_ = State::Welcome;
+    state_ = State::Notice;
+    interactionsReady_ = false;
+    requestUpdate();
+    return;
+  }
+
+  std::vector<std::string> options;
+  options.reserve(chatList.size());
+  for (const auto& item : chatList) {
+    options.push_back(item.displayLabel);
+  }
+
+  auto activity = makeUniqueNoThrow<OptionSelectionActivity>(
+      renderer, mappedInput, "GeminiSavedChats", StrId::STR_SELECT, options, 0, false, true);
+  if (!activity) return;
+
+  startActivityForResult(std::move(activity), [this, chatList](const ActivityResult& result) {
+    interactionsReady_ = false;
+    if (result.isCancelled) {
+      requestUpdate();
+      return;
+    }
+    const auto& sel = std::get<OptionSelectionResult>(result.data);
+    if (sel.index < chatList.size()) {
+      loadConversationFromFile(chatList[sel.index].filePath);
+    } else {
+      requestUpdate();
+    }
+  });
+}
+
+bool GeminiActivity::loadConversationFromFile(const std::string& path) {
+  String raw = Storage.readFile(path.c_str());
+  if (raw.length() == 0) {
+    noticeTitle_ = "Load Failed";
+    noticeMessage_ = "Could not read file:\n" + path;
+    noticeReturnState_ = State::Welcome;
+    state_ = State::Notice;
+    requestUpdate();
+    return false;
+  }
+
+  std::string content(raw.c_str());
+  if (!parseConversation(content, history_, currentPrompt_, fullResponseText_)) {
+    noticeTitle_ = "Parse Error";
+    noticeMessage_ = "File does not contain a recognized Gemini conversation format.";
+    noticeReturnState_ = State::Welcome;
+    state_ = State::Notice;
+    requestUpdate();
+    return false;
+  }
+
+  lastSavedFilePath_ = path;
+  savedToNotes_ = true;
+
+  fui::GfxRendererTarget target = toybox::makeTarget(renderer, toybox::readingChromeFaces());
+  int contentW = target.deviceContext().width - 2 * toybox::kMargin;
+  int totalLines = geminiui::calculateTotalLines(target, static_cast<int16_t>(contentW), fullResponseText_);
+  linesPerPage_ = geminiui::responseLinesPerPage(target, target.deviceContext());
+  totalPages_ = geminiui::calculateTotalPages(totalLines, linesPerPage_);
+  currentPage_ = 0;
+
+  state_ = State::Response;
+  interactionsReady_ = false;
+  requestUpdate();
+  return true;
 }
 
 void GeminiActivity::loop() {
@@ -561,7 +899,7 @@ void GeminiActivity::loop() {
       }
       return;
     } else if (state_ == State::Response) {
-      openKeyboardForPrompt("", true);
+      openReplyPrompt();
       return;
     }
   }
@@ -626,6 +964,14 @@ void GeminiActivity::loop() {
 
   switch (action.action) {
     case geminiui::ActionAsk:
+      if (state_ == State::Response) {
+        openReplyPrompt();
+      } else if (!draftPrompt_.empty()) {
+        askPrompt(draftPrompt_);
+      } else {
+        openKeyboardForPrompt("", true);
+      }
+      return;
     case geminiui::ActionSendPrompt:
       if (!draftPrompt_.empty()) {
         askPrompt(draftPrompt_);
@@ -646,6 +992,9 @@ void GeminiActivity::loop() {
       return;
     case geminiui::ActionQuickPrompts:
       openQuickPromptsSelection();
+      return;
+    case geminiui::ActionSavedChats:
+      openSavedChatsSelection();
       return;
     case geminiui::ActionKeyChar: {
       char c = static_cast<char>(action.value);
@@ -777,6 +1126,8 @@ void GeminiActivity::render(RenderLock&&) {
       model.linesPerPage = linesPerPage_;
       model.modelName = modelName_;
       model.savedToNotes = savedToNotes_;
+      model.turnNumber = static_cast<int>(history_.size() / 2);
+      if (model.turnNumber < 1) model.turnNumber = 1;
       geminiui::drawResponse(screen, model);
       break;
     }

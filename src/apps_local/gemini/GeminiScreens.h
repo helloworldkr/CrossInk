@@ -32,6 +32,7 @@ enum : fui::ActionId {
   ActionKeyMode = 453,
   ActionKeySpace = 454,
   ActionQuickPrompts = 455,
+  ActionSavedChats = 456,
 };
 
 struct WelcomeModel {
@@ -60,6 +61,7 @@ struct ResponseModel {
   int linesPerPage = 25;
   std::string modelName = "gemini-2.5-flash";
   bool savedToNotes = false;
+  int turnNumber = 1;
 };
 
 struct ErrorModel {

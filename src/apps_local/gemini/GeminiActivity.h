@@ -47,6 +47,13 @@ class GeminiActivity final : public Activity {
   void openWifiSelection();
   void openSettingsMenu();
   void openQuickPromptsSelection();
+  void openSaveMenu();
+  void openFolderSelectionForSave();
+  void openCreateFolderForSave();
+  void saveConversationToFolder(const std::string& folder);
+  void openSavedChatsSelection();
+  bool loadConversationFromFile(const std::string& path);
+  void openReplyPrompt();
   void saveResponseToNotes();
   void resetChat();
 
@@ -58,6 +65,7 @@ class GeminiActivity final : public Activity {
   std::vector<gemini::Message> history_;
   std::string currentPrompt_;
   std::string draftPrompt_;
+  std::string lastSavedFilePath_;
   bool shifted_ = false;
   bool symbols_ = false;
   std::string fullResponseText_;
