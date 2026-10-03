@@ -3,7 +3,7 @@
 > **Open-source e-reader firmware with Google Gemini AI for ESP32-C3 and ESP32-S3 devices** (forked from [CrossPoint](https://github.com/crosspoint-reader/crosspoint-reader) / [uxjulia/CrossInk](https://github.com/uxjulia/CrossInk)).  
 > Enhanced with **Google Gemini AI**, **iPhone-style on-screen keyboard**, **Notes with live Wi-Fi typing**, **Anki/FSRS flashcard study**, **Starred books**, **Dark mode scheduling**, custom typography, and lightweight reading statistics.
 
-[![GitHub repo](https://img.shields.io/badge/GitHub-helloworldkr%2FCrossInk--Gemini--AI-blue?logo=github)](https://github.com/helloworldkr/CrossInk)
+[![GitHub repo](https://img.shields.io/badge/GitHub-helloworldkr%2FCrossInk--Gemini--AI-blue?logo=github)](https://github.com/helloworldkr/CrossInk-Gemini-AI)
 [![PlatformIO](https://img.shields.io/badge/PlatformIO-Build%20Passing-brightgreen?logo=platformio)](https://platformio.org/)
 
 ---
