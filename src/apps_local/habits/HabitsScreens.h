@@ -41,6 +41,9 @@ inline constexpr fui::ActionId ActionManageRename2 = 25;
 inline constexpr fui::ActionId ActionManageRemove0 = 26;
 inline constexpr fui::ActionId ActionManageRemove1 = 27;
 inline constexpr fui::ActionId ActionManageRemove2 = 28;
+inline constexpr fui::ActionId ActionManageGoal0 = 40;
+inline constexpr fui::ActionId ActionManageGoal1 = 41;
+inline constexpr fui::ActionId ActionManageGoal2 = 42;
 
 // Presets
 inline constexpr fui::ActionId ActionPreset0 = 30;  // READ

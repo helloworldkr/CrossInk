@@ -114,17 +114,33 @@ void buildDaily(toybox::Screen& screen, const ::habits::Store& store, const char
       screen.target().stroke(cardBox, ink, rec.completed ? 2 : 1, 6);
 
       // Left column: Habit name, streak, total, status
-      drawText(screen, fui::makeRect(cardBox.x + 18, cardBox.y + 16, cardBox.width - 120, 28), h->name,
+      drawText(screen, fui::makeRect(cardBox.x + 18, cardBox.y + 14, cardBox.width - 120, 28), h->name,
                toybox::kUiFont);
 
+      const int target = (h->targetStreak > 0) ? h->targetStreak : 21;
       char streakBuf[64];
-      std::snprintf(streakBuf, sizeof(streakBuf), "STREAK: %d DAYS", h->streak);
-      drawText(screen, fui::makeRect(cardBox.x + 18, cardBox.y + 48, cardBox.width - 120, 22), streakBuf,
+      if (h->streak >= target) {
+        std::snprintf(streakBuf, sizeof(streakBuf), "STREAK: %d / %d DAYS  (GOAL MET!)", h->streak, target);
+      } else {
+        std::snprintf(streakBuf, sizeof(streakBuf), "STREAK: %d / %d DAYS", h->streak, target);
+      }
+      drawText(screen, fui::makeRect(cardBox.x + 18, cardBox.y + 42, cardBox.width - 120, 22), streakBuf,
                toybox::kTileFont);
+
+      // Streak Progress Bar
+      const int barX = cardBox.x + 18;
+      const int barY = cardBox.y + 67;
+      const int barW = std::min(170, cardBox.width - 120);
+      constexpr int barH = 5;
+      screen.target().stroke(fui::makeRect(barX, barY, barW, barH), ink, 1, 2);
+      const int fillW = std::clamp(static_cast<int>((static_cast<float>(h->streak) / target) * barW), 0, barW);
+      if (fillW > 0) {
+        screen.target().fill(fui::makeRect(barX, barY, fillW, barH), ink, 2);
+      }
 
       char subBuf[64];
       std::snprintf(subBuf, sizeof(subBuf), "BEST: %d DAYS  ·  TOTAL: %d DAYS", h->bestStreak, h->totalCompleted);
-      drawText(screen, fui::makeRect(cardBox.x + 18, cardBox.y + 74, cardBox.width - 120, 20), subBuf,
+      drawText(screen, fui::makeRect(cardBox.x + 18, cardBox.y + 78, cardBox.width - 120, 20), subBuf,
                toybox::kSmallFont, fui::TextAlign::Left, fui::Color::DarkGray);
 
       const char* hint = rec.completed ? "DONE FOR THIS DAY" : "TAP TO MARK YES";
@@ -349,25 +365,34 @@ void buildManage(toybox::Screen& screen, const ::habits::Store& store) {
     screen.target().stroke(box, ink, 1, 6);
 
     if (h && h->name[0] != '\0') {
+      const int target = (h->targetStreak > 0) ? h->targetStreak : 21;
+
       // Habit Name
       char nameBuf[48];
       std::snprintf(nameBuf, sizeof(nameBuf), "%d. %s", i + 1, h->name);
-      drawText(screen, fui::makeRect(box.x + 14, box.y + 10, box.width - 190, 28), nameBuf, toybox::kUiFont);
+      drawText(screen, fui::makeRect(box.x + 14, box.y + 10, box.width - 246, 28), nameBuf, toybox::kUiFont);
 
-      char statsBuf[48];
-      std::snprintf(statsBuf, sizeof(statsBuf), "Streak: %d days  ·  Total: %d", h->streak, h->totalCompleted);
-      drawText(screen, fui::makeRect(box.x + 14, box.y + 46, box.width - 190, 20), statsBuf, toybox::kSmallFont,
+      char statsBuf[64];
+      std::snprintf(statsBuf, sizeof(statsBuf), "Streak: %d / %dd  ·  Best: %dd", h->streak, target, h->bestStreak);
+      drawText(screen, fui::makeRect(box.x + 14, box.y + 46, box.width - 246, 20), statsBuf, toybox::kSmallFont,
                fui::TextAlign::Left, fui::Color::DarkGray);
 
+      // Goal button [ GOAL ]
+      const fui::Rect goalRect = fui::makeRect(box.x + box.width - 232, box.y + 20, 72, 42);
+      screen.target().stroke(goalRect, ink, 1, 4);
+      drawText(screen, fui::makeRect(goalRect.x, goalRect.y + 11, goalRect.width, 20), "GOAL", toybox::kTileFont,
+               fui::TextAlign::Center);
+      addBtn(screen, static_cast<fui::ActionId>(ActionManageGoal0 + i), goalRect);
+
       // Rename button [ RENAME ]
-      const fui::Rect renRect = fui::makeRect(box.x + box.width - 180, box.y + 20, 82, 42);
+      const fui::Rect renRect = fui::makeRect(box.x + box.width - 154, box.y + 20, 72, 42);
       screen.target().stroke(renRect, ink, 1, 4);
       drawText(screen, fui::makeRect(renRect.x, renRect.y + 11, renRect.width, 20), "RENAME", toybox::kTileFont,
                fui::TextAlign::Center);
       addBtn(screen, static_cast<fui::ActionId>(ActionManageRename0 + i), renRect);
 
       // Remove button [ REMOVE ]
-      const fui::Rect remRect = fui::makeRect(box.x + box.width - 90, box.y + 20, 82, 42);
+      const fui::Rect remRect = fui::makeRect(box.x + box.width - 76, box.y + 20, 72, 42);
       screen.target().stroke(remRect, ink, 1, 4);
       drawText(screen, fui::makeRect(remRect.x, remRect.y + 11, remRect.width, 20), "REMOVE", toybox::kTileFont,
                fui::TextAlign::Center);

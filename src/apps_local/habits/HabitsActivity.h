@@ -28,6 +28,7 @@ class HabitsActivity final : public Activity {
   void openManage();
   void updateDisplayDate();
   void openKeyboardForSlot(int slotIndex, const char* initialText = nullptr);
+  void openTargetStreakForSlot(int slotIndex, std::string habitName, int currentTarget = 21, bool isNewCreation = true);
 
   habits::Store store_;
   View view_ = View::Daily;

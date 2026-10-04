@@ -16,6 +16,7 @@ struct Habit {
   int streak = 0;
   int bestStreak = 0;
   int totalCompleted = 0;
+  int targetStreak = 21;
 };
 
 struct DailyRecord {
@@ -45,8 +46,9 @@ class Store {
   void getTodayScore(const char* todayDate, int& completed, int& total) const;
   int weekCompletedDays(uint32_t habitId, const char weekDates[7][12]) const;
 
-  bool addHabit(const char* name);
-  bool addHabitAt(int index, const char* name);
+  bool addHabit(const char* name, int targetStreak = 21);
+  bool addHabitAt(int index, const char* name, int targetStreak = 21);
+  bool setTargetStreak(int index, int targetStreak);
   bool removeHabit(int index);
   bool renameHabit(int index, const char* newName);
   int activeHabitCount() const;

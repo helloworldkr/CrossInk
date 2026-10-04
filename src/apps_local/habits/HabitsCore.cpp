@@ -51,13 +51,19 @@ Store::Store() {
 
 void Store::initDefaults() {
   recordCount_ = 0;
-  for (int i = 0; i < kMaxHabits; ++i) habits_[i] = Habit{};
+  for (int i = 0; i < kMaxHabits; ++i) {
+    habits_[i] = Habit{};
+    habits_[i].targetStreak = 21;
+  }
   habits_[0].id = 1;
   std::strncpy(habits_[0].name, "READ", kNameMax - 1);
+  habits_[0].targetStreak = 21;
   habits_[1].id = 2;
   std::strncpy(habits_[1].name, "WALK", kNameMax - 1);
+  habits_[1].targetStreak = 21;
   habits_[2].id = 3;
   std::strncpy(habits_[2].name, "MEDITATE", kNameMax - 1);
+  habits_[2].targetStreak = 21;
 }
 
 Habit* Store::habitAt(int index) {
@@ -233,8 +239,10 @@ bool Store::load() {
           Habit& h = habits_[habitSlot];
           if (std::strcmp(key, "id") == 0) h.id = static_cast<uint32_t>(std::atoi(val));
           else if (std::strcmp(key, "name") == 0) std::strncpy(h.name, val, kNameMax - 1);
+          else if (std::strcmp(key, "target_streak") == 0) h.targetStreak = std::atoi(val);
           else if (std::strcmp(key, "best_streak") == 0) {
             h.bestStreak = std::atoi(val);
+            if (h.targetStreak <= 0) h.targetStreak = 21;
             ++habitSlot;
           }
         }
@@ -273,8 +281,8 @@ bool Store::save() {
     const Habit& h = habits_[i];
     if (h.name[0] == '\0') continue;
     writeStr(file, "[HABIT]\n");
-    std::snprintf(line, sizeof(line), "id=%u\nname=%s\nbest_streak=%d\n\n",
-                  static_cast<unsigned int>(h.id), h.name, h.bestStreak);
+    std::snprintf(line, sizeof(line), "id=%u\nname=%s\ntarget_streak=%d\nbest_streak=%d\n\n",
+                  static_cast<unsigned int>(h.id), h.name, h.targetStreak > 0 ? h.targetStreak : 21, h.bestStreak);
     writeStr(file, line);
   }
 
@@ -329,21 +337,29 @@ void Store::getWeekDays(const char* anchorDate, char weekDates[7][12]) {
   }
 }
 
-bool Store::addHabit(const char* name) {
+bool Store::addHabit(const char* name, int targetStreak) {
   for (int i = 0; i < kMaxHabits; ++i) {
     if (habits_[i].name[0] == '\0') {
-      return addHabitAt(i, name);
+      return addHabitAt(i, name, targetStreak);
     }
   }
   return false;
 }
 
-bool Store::addHabitAt(int index, const char* name) {
+bool Store::addHabitAt(int index, const char* name, int targetStreak) {
   if (index < 0 || index >= kMaxHabits || !name || name[0] == '\0') return false;
   habits_[index] = Habit{};
   habits_[index].id = static_cast<uint32_t>(index + 1);
   std::strncpy(habits_[index].name, name, kNameMax - 1);
   habits_[index].name[kNameMax - 1] = '\0';
+  habits_[index].targetStreak = (targetStreak > 0) ? targetStreak : 21;
+  save();
+  return true;
+}
+
+bool Store::setTargetStreak(int index, int targetStreak) {
+  if (index < 0 || index >= kMaxHabits) return false;
+  habits_[index].targetStreak = (targetStreak > 0) ? targetStreak : 21;
   save();
   return true;
 }

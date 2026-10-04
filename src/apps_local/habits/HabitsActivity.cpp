@@ -2,6 +2,7 @@
 
 #include <Memory.h>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 #include "../../activities/ActivityResult.h"
@@ -72,9 +73,40 @@ void HabitsActivity::openKeyboardForSlot(int slotIndex, const char* initialText)
 
     const auto* h = store_.habitAt(slotIndex);
     if (!h || h->name[0] == '\0') {
-      store_.addHabitAt(slotIndex, keyboardResult->text.c_str());
+      openTargetStreakForSlot(slotIndex, keyboardResult->text, 21, true);
     } else {
       store_.renameHabit(slotIndex, keyboardResult->text.c_str());
+      store_.recalculateStreaks(todayDate_);
+      openManage();
+    }
+  });
+}
+
+void HabitsActivity::openTargetStreakForSlot(int slotIndex, std::string habitName, int currentTarget, bool isNewCreation) {
+  char defaultTargetStr[16];
+  std::snprintf(defaultTargetStr, sizeof(defaultTargetStr), "%d", currentTarget > 0 ? currentTarget : 21);
+
+  char titleBuf[48];
+  std::snprintf(titleBuf, sizeof(titleBuf), "TARGET: %s", habitName.c_str());
+
+  auto keyboard = makeUniqueNoThrow<KeyboardEntryActivity>(
+      renderer, mappedInput, titleBuf, defaultTargetStr, 4, InputType::Text, 1,
+      "Enter your target streak in days (e.g. 7, 14, 21, 30, 60, 100):");
+  if (!keyboard) return;
+
+  startActivityForResult(std::move(keyboard), [this, slotIndex, habitName, currentTarget, isNewCreation](const ActivityResult& result) {
+    int target = currentTarget > 0 ? currentTarget : 21;
+    if (!result.isCancelled) {
+      const auto* keyboardResult = std::get_if<KeyboardResult>(&result.data);
+      if (keyboardResult && !keyboardResult->text.empty()) {
+        const int parsed = std::atoi(keyboardResult->text.c_str());
+        if (parsed > 0) target = parsed;
+      }
+    }
+    if (isNewCreation) {
+      store_.addHabitAt(slotIndex, habitName.c_str(), target);
+    } else {
+      store_.setTargetStreak(slotIndex, target);
     }
     store_.recalculateStreaks(todayDate_);
     openManage();
@@ -207,6 +239,17 @@ void HabitsActivity::loop() {
       return;
     }
 
+    case habitsui::ActionManageGoal0:
+    case habitsui::ActionManageGoal1:
+    case habitsui::ActionManageGoal2: {
+      const int slot = action.action - habitsui::ActionManageGoal0;
+      const auto* h = store_.habitAt(slot);
+      if (h && h->name[0] != '\0') {
+        openTargetStreakForSlot(slot, h->name, h->targetStreak, false);
+      }
+      return;
+    }
+
     case habitsui::ActionPreset0:
     case habitsui::ActionPreset1:
     case habitsui::ActionPreset2:
@@ -216,9 +259,18 @@ void HabitsActivity::loop() {
       static const char* kPresets[6] = {"READ", "WALK", "MEDITATE", "WORKOUT", "WATER", "JOURNAL"};
       const int pIdx = action.action - habitsui::ActionPreset0;
       if (pIdx >= 0 && pIdx < 6) {
-        store_.addHabit(kPresets[pIdx]);
-        store_.recalculateStreaks(todayDate_);
-        requestUpdate();
+        int emptySlot = -1;
+        for (int i = 0; i < habits::kMaxHabits; ++i) {
+          const auto* h = store_.habitAt(i);
+          if (!h || h->name[0] == '\0') {
+            emptySlot = i;
+            break;
+          }
+        }
+        if (emptySlot >= 0) {
+          openTargetStreakForSlot(emptySlot, kPresets[pIdx], 21, true);
+          return;
+        }
       }
       return;
     }
