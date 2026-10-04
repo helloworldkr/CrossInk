@@ -18,6 +18,7 @@ struct WifiResult {
 
 struct KeyboardResult {
   std::string text;
+  bool goToNext = false;
 };
 
 struct MenuResult {

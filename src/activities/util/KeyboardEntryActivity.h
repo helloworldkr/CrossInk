@@ -21,14 +21,16 @@ class KeyboardEntryActivity : public Activity {
   explicit KeyboardEntryActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
                                  std::string title = "Enter Text", std::string initialText = "",
                                  const size_t maxLength = 0, InputType inputType = InputType::Text,
-                                 const size_t minLength = 0, std::string prompt = "")
+                                 const size_t minLength = 0, std::string prompt = "",
+                                 bool showNextButton = false)
       : Activity("KeyboardEntry", renderer, mappedInput),
         title(std::move(title)),
         text(std::move(initialText)),
         maxLength(maxLength),
         inputType(inputType),
         minLength(minLength),
-        prompt(std::move(prompt)) {}
+        prompt(std::move(prompt)),
+        showNextButton(showNextButton) {}
 
   void onEnter() override;
   void onExit() override;
@@ -43,6 +45,11 @@ class KeyboardEntryActivity : public Activity {
   InputType inputType;
   size_t minLength;
   std::string prompt;
+  bool showNextButton = false;
+  int nextBtnX = 0;
+  int nextBtnY = 0;
+  int nextBtnW = 0;
+  int nextBtnH = 0;
   bool passwordVisible = false;
 
   int promptBoxHeight() const;
@@ -102,6 +109,7 @@ class KeyboardEntryActivity : public Activity {
   enum class InputFieldTouchTarget { None, Cursor, PasswordToggle };
 
   void onComplete(std::string text);
+  void onNext(std::string text);
   void onCancel();
   InputFieldTouchTarget inputFieldTouchTargetFromPoint(int x, int y, size_t& position) const;
   std::string displayTextForCurrentState() const;

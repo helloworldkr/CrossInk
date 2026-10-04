@@ -680,6 +680,17 @@ void KeyboardEntryActivity::loop() {
     return;
   }
 
+  if (showNextButton && nextBtnW > 0) {
+    const int hitX = std::max(0, nextBtnX - 8);
+    const int hitY = std::max(0, nextBtnY - 6);
+    const int hitW = nextBtnW + 16;
+    const int hitH = nextBtnH + 12;
+    if (mappedInput.wasTapInRect(hitX, hitY, hitW, hitH)) {
+      onNext(text);
+      return;
+    }
+  }
+
   int tx = 0;
   int ty = 0;
 
@@ -882,6 +893,11 @@ void KeyboardEntryActivity::loop() {
     onCancel();
   }
 
+  if (showNextButton && mappedInput.wasReleased(MappedInputManager::Button::PageForward)) {
+    onNext(text);
+    return;
+  }
+
   if (hintVisible && !cursorMode && millis() - hintShowTime > 4000) {
     hintVisible = false;
     requestUpdate();
@@ -958,7 +974,8 @@ void KeyboardEntryActivity::renderPromptBox(const int promptY, const int promptW
   renderer.drawRect(promptMargin + 2, promptY + 2, promptW - 4, cardH - 4, true);
 
   for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
-    renderer.drawText(UI_10_FONT_ID, promptMargin + 14, promptY + 12 + i * pLineH, lines[i].c_str(), EpdFontFamily::BOLD);
+    renderer.drawText(UI_10_FONT_ID, promptMargin + 14, promptY + 12 + i * pLineH, lines[i].c_str(), true,
+                      EpdFontFamily::BOLD);
   }
 }
 
@@ -970,9 +987,26 @@ void KeyboardEntryActivity::render(RenderLock&&) {
 
   const Rect header{0, metrics.topPadding, pageWidth, TouchHeaderBackButton::height(metrics, mappedInput)};
   if (mappedInput.hasTouchHardware()) {
-    TouchHeaderBackButton::draw(renderer, header, title.c_str(), false);
+    TouchHeaderBackButton::draw(renderer, header, title.c_str(), false, showNextButton ? 88 : 0);
   } else {
     GUI.drawHeader(renderer, header, title.c_str());
+  }
+
+  if (showNextButton) {
+    constexpr int btnW = 74;
+    constexpr int btnH = 26;
+    nextBtnX = pageWidth - btnW - 10;
+    nextBtnY = header.y + (header.height - btnH) / 2;
+    nextBtnW = btnW;
+    nextBtnH = btnH;
+    renderer.fillRoundedRect(nextBtnX, nextBtnY, nextBtnW, nextBtnH, 4, Color::Black);
+    const char* label = "NEXT >";
+    const int textW = renderer.getTextWidth(UI_10_FONT_ID, label);
+    const int textX = nextBtnX + (nextBtnW - textW) / 2;
+    const int textY = nextBtnY + (nextBtnH - renderer.getLineHeight(UI_10_FONT_ID)) / 2;
+    renderer.drawText(UI_10_FONT_ID, textX, textY, label, false, EpdFontFamily::BOLD);
+  } else {
+    nextBtnW = 0;
   }
 
   const int promptOffset = promptBoxHeight();
@@ -1256,7 +1290,12 @@ void KeyboardEntryActivity::render(RenderLock&&) {
 }
 
 void KeyboardEntryActivity::onComplete(std::string text) {
-  setResult(KeyboardResult{std::move(text)});
+  setResult(KeyboardResult{std::move(text), /*goToNext=*/false});
+  finish();
+}
+
+void KeyboardEntryActivity::onNext(std::string text) {
+  setResult(KeyboardResult{std::move(text), /*goToNext=*/true});
   finish();
 }
 

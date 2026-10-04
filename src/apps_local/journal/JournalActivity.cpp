@@ -98,11 +98,12 @@ void JournalActivity::openKeyboardForAnswer(int questionIndex) {
   char titleBuf[48];
   std::snprintf(titleBuf, sizeof(titleBuf), "REFLECTION (%d/%d)", questionIndex + 1, store_.questionCount());
 
+  const bool hasNext = (questionIndex + 1 < store_.questionCount());
   const char* existingAnswer = store_.getAnswerAt(questionIndex);
   auto keyboard = makeUniqueNoThrow<KeyboardEntryActivity>(renderer, mappedInput, titleBuf,
                                                            existingAnswer ? existingAnswer : "",
                                                            journal::kAnswerMax - 1, InputType::Text, 0,
-                                                           q->text);
+                                                           q->text, hasNext);
   if (!keyboard) return;
 
   startActivityForResult(std::move(keyboard), [this, questionIndex](const ActivityResult& result) {
@@ -116,7 +117,13 @@ void JournalActivity::openKeyboardForAnswer(int questionIndex) {
       return;
     }
     store_.setAnswerAt(questionIndex, keyboardResult->text.c_str());
-    requestUpdate();
+    if (keyboardResult->goToNext && questionIndex + 1 < store_.questionCount()) {
+      dailyPage_ = (questionIndex + 1) / journalui::kQuestionsPerPage;
+      openKeyboardForAnswer(questionIndex + 1);
+    } else {
+      dailyPage_ = questionIndex / journalui::kQuestionsPerPage;
+      requestUpdate();
+    }
   });
 }
 
