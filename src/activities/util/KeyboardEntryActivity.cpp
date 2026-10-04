@@ -917,7 +917,7 @@ int KeyboardEntryActivity::promptBoxHeight() const {
       end = space;
     }
   }
-  const int cardH = 20 + std::max(1, lineCount) * pLineH + 8;
+  const int cardH = 14 + std::max(1, lineCount) * pLineH + 10;
   return cardH + 10;
 }
 
@@ -952,20 +952,13 @@ void KeyboardEntryActivity::renderPromptBox(const int promptY, const int promptW
   }
 
   const int numLines = std::max(1, static_cast<int>(lines.size()));
-  const int cardH = 20 + numLines * pLineH + 8;
+  const int cardH = 14 + numLines * pLineH + 10;
 
   renderer.drawRect(promptMargin, promptY, promptW, cardH, true);
   renderer.drawRect(promptMargin + 2, promptY + 2, promptW - 4, cardH - 4, true);
 
-  constexpr int badgeW = 76;
-  constexpr int badgeH = 14;
-  renderer.fillRect(promptMargin + 12, promptY - 1, badgeW, badgeH, false);
-  renderer.fillRect(promptMargin + 12, promptY, badgeW, badgeH, true);
-  renderer.drawText(UI_10_FONT_ID, promptMargin + 16, promptY + 11, "QUESTION", EpdFontFamily::BOLD);
-  renderer.invertRect(promptMargin + 12, promptY, badgeW, badgeH);
-
   for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
-    renderer.drawText(UI_10_FONT_ID, promptMargin + 12, promptY + 22 + i * pLineH, lines[i].c_str(), EpdFontFamily::BOLD);
+    renderer.drawText(UI_10_FONT_ID, promptMargin + 14, promptY + 12 + i * pLineH, lines[i].c_str(), EpdFontFamily::BOLD);
   }
 }
 
