@@ -8,6 +8,11 @@
 - **Notes**: Create, view, and edit markdown notes and task checklists with the on-screen touch keyboard or via live phone typing over local Wi-Fi (`/n`); supports pinning any note as the sleep screen.
 - **Notes Item Editing**: Tap any line in a note or checklist to open an action sheet to edit text, delete the line directly, or toggle completion.
 - **Anki Flashcards (Spaced Repetition)**: Renamed "Study" to "Anki" on the Apps Shelf and on-screen headers for improved UX and clarity. Review flashcard decks with the FSRS spaced repetition scheduler, card flipping, quality ratings (Again/Hard/Good/Easy), Cloze deletions, embedded illustrations, review statistics, and Python CLI / Web tools to convert Anki `.apkg` collections.
+- **Breathe Relaxation App**: Simple, calming mindful breathing app designed specifically for e-ink displays. Features 3 guided techniques:
+  - **Equal Breathing** (Sama Vritti: 4s Inhale, 4s Exhale — 8s cycle)
+  - **4-7-8 Breathing** (Dr. Weil's nervous system reset: 4s Inhale, 7s Hold, 8s Exhale — 19s cycle)
+  - **Box Breathing** (Navy SEALs focus technique: 4s Inhale, 4s Hold, 4s Exhale, 4s Hold — 16s cycle)
+  Includes configurable breath counts (4, 8, 12, 16 presets or custom stepper up to 30 breaths), live dynamic session duration estimation, smooth e-ink concentric mandala expansion/contraction visualization with high-contrast text knockout pill, perimeter tracking marker for Box Breathing, session progress bar, pause/resume controls, and end-of-session completion statistics.
 - **Habits Tracker**: Distraction-free, 3-habit daily tracker for Xteink X4 Pro and CrossInk devices based on the Rule of 3. Features clean Yes / No tick checkboxes, header day-by-day navigation (`<` and `>` with `[ TODAY ]` shortcut) to freely browse and log past days, weekly 7-day completion matrix with one-tap day jump, streak tracking with atomic SD persistence at `/XTData/habits.dat`, and a dedicated `MANAGE` screen with 1-tap presets (`READ`, `WALK`, `MEDITATE`, `WORKOUT`, `WATER`, `JOURNAL`), on-screen keyboard custom naming, rename, and remove actions.
 - **Apps Shelf**: Added an "Apps" launcher entry on the Home screen to browse and run on-device applications.
 

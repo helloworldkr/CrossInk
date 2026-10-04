@@ -36,6 +36,9 @@ bool parseDate(const char* str, struct tm& outTm) {
   return true;
 }
 
+static const char* const kDays[7] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
+static const char* const kMonths[12] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+
 void formatDate(const struct tm& inTm, char* out, size_t outLen) {
   std::snprintf(out, outLen, "%04d-%02d-%02d", inTm.tm_year + 1900, inTm.tm_mon + 1, inTm.tm_mday);
 }
@@ -47,35 +50,14 @@ Store::Store() {
 }
 
 void Store::initDefaults() {
+  recordCount_ = 0;
+  for (int i = 0; i < kMaxHabits; ++i) habits_[i] = Habit{};
   habits_[0].id = 1;
   std::strncpy(habits_[0].name, "READ", kNameMax - 1);
-  habits_[0].type = HabitType::Count;
-  habits_[0].target = 10;
-  std::strncpy(habits_[0].unit, "pages", kUnitMax - 1);
-  habits_[0].increment = 1;
-  habits_[0].minimum = 2;
-  std::strncpy(habits_[0].cue, "After dinner", kTextMax - 1);
-  std::strncpy(habits_[0].identity, "I am a reader", kTextMax - 1);
-
   habits_[1].id = 2;
   std::strncpy(habits_[1].name, "WALK", kNameMax - 1);
-  habits_[1].type = HabitType::Count;
-  habits_[1].target = 20;
-  std::strncpy(habits_[1].unit, "min", kUnitMax - 1);
-  habits_[1].increment = 5;
-  habits_[1].minimum = 10;
-  std::strncpy(habits_[1].cue, "Morning break", kTextMax - 1);
-  std::strncpy(habits_[1].identity, "I am active", kTextMax - 1);
-
   habits_[2].id = 3;
   std::strncpy(habits_[2].name, "MEDITATE", kNameMax - 1);
-  habits_[2].type = HabitType::Count;
-  habits_[2].target = 10;
-  std::strncpy(habits_[2].unit, "min", kUnitMax - 1);
-  habits_[2].increment = 5;
-  habits_[2].minimum = 5;
-  std::strncpy(habits_[2].cue, "Before sleep", kTextMax - 1);
-  std::strncpy(habits_[2].identity, "I am mindful", kTextMax - 1);
 }
 
 Habit* Store::habitAt(int index) {
@@ -113,7 +95,6 @@ DailyRecord Store::getRecord(uint32_t habitId, const char* date) const {
   empty.habitId = habitId;
   empty.count = 0;
   empty.completed = false;
-  empty.minimumReached = false;
   return empty;
 }
 
@@ -124,7 +105,6 @@ DailyRecord* Store::findOrCreateRecord(uint32_t habitId, const char* date) {
     }
   }
   if (recordCount_ >= kMaxRecords) {
-    // Evict oldest record by shifting
     for (int i = 0; i < kMaxRecords - 1; ++i) {
       records_[i] = records_[i + 1];
     }
@@ -135,34 +115,13 @@ DailyRecord* Store::findOrCreateRecord(uint32_t habitId, const char* date) {
   rec.habitId = habitId;
   rec.count = 0;
   rec.completed = false;
-  rec.minimumReached = false;
   return &rec;
-}
-
-void Store::setRecord(uint32_t habitId, const char* date, int count) {
-  const Habit* h = habitById(habitId);
-  if (!h) return;
-
-  DailyRecord* r = findOrCreateRecord(habitId, date);
-  r->count = std::max(0, count);
-  r->completed = (r->count >= h->target);
-  r->minimumReached = (h->minimum > 0 && r->count >= h->minimum);
-  save();
-}
-
-void Store::increment(uint32_t habitId, const char* date) {
-  toggleBinary(habitId, date);
-}
-
-void Store::decrement(uint32_t habitId, const char* date) {
-  toggleBinary(habitId, date);
 }
 
 void Store::toggleBinary(uint32_t habitId, const char* date) {
   DailyRecord* r = findOrCreateRecord(habitId, date);
   r->completed = !r->completed;
   r->count = r->completed ? 1 : 0;
-  r->minimumReached = r->completed;
   save();
 }
 
@@ -274,15 +233,8 @@ bool Store::load() {
           Habit& h = habits_[habitSlot];
           if (std::strcmp(key, "id") == 0) h.id = static_cast<uint32_t>(std::atoi(val));
           else if (std::strcmp(key, "name") == 0) std::strncpy(h.name, val, kNameMax - 1);
-          else if (std::strcmp(key, "type") == 0) h.type = (std::strcmp(val, "binary") == 0) ? HabitType::Binary : HabitType::Count;
-          else if (std::strcmp(key, "target") == 0) h.target = std::atoi(val);
-          else if (std::strcmp(key, "unit") == 0) std::strncpy(h.unit, val, kUnitMax - 1);
-          else if (std::strcmp(key, "increment") == 0) h.increment = std::max(1, std::atoi(val));
-          else if (std::strcmp(key, "minimum") == 0) h.minimum = std::atoi(val);
-          else if (std::strcmp(key, "best_streak") == 0) h.bestStreak = std::atoi(val);
-          else if (std::strcmp(key, "cue") == 0) std::strncpy(h.cue, val, kTextMax - 1);
-          else if (std::strcmp(key, "identity") == 0) {
-            std::strncpy(h.identity, val, kTextMax - 1);
+          else if (std::strcmp(key, "best_streak") == 0) {
+            h.bestStreak = std::atoi(val);
             ++habitSlot;
           }
         }
@@ -299,7 +251,6 @@ bool Store::load() {
         r.habitId = static_cast<uint32_t>(std::atoi(idStr));
         r.count = std::atoi(cntStr);
         r.completed = (std::atoi(compStr) != 0);
-        r.minimumReached = p ? (std::atoi(p) != 0) : false;
       }
     }
     line = nextLine;
@@ -315,21 +266,22 @@ bool Store::save() {
   HalFile file;
   if (!Storage.openFileForWrite("HABITS", kPartPath, file)) return false;
 
-  char line[128];
-  writeStr(file, "# HABITS CONFIG v1\n");
+  char line[96];
+  writeStr(file, "# HABITS CONFIG v2\n");
 
   for (int i = 0; i < kMaxHabits; ++i) {
     const Habit& h = habits_[i];
+    if (h.name[0] == '\0') continue;
     writeStr(file, "[HABIT]\n");
-    std::snprintf(line, sizeof(line), "id=%u\nname=%s\ntype=%s\ntarget=%d\nunit=%s\nincrement=%d\nminimum=%d\nbest_streak=%d\ncue=%s\nidentity=%s\n\n",
-                  h.id, h.name, h.type == HabitType::Binary ? "binary" : "count", h.target, h.unit, h.increment, h.minimum, h.bestStreak, h.cue, h.identity);
+    std::snprintf(line, sizeof(line), "id=%u\nname=%s\nbest_streak=%d\n\n",
+                  static_cast<unsigned int>(h.id), h.name, h.bestStreak);
     writeStr(file, line);
   }
 
-  writeStr(file, "[RECORDS]\n# date habitId count completed minReached\n");
+  writeStr(file, "[RECORDS]\n");
   for (int i = 0; i < recordCount_; ++i) {
     const auto& r = records_[i];
-    std::snprintf(line, sizeof(line), "%s %u %d %d %d\n", r.date, r.habitId, r.count, r.completed ? 1 : 0, r.minimumReached ? 1 : 0);
+    std::snprintf(line, sizeof(line), "%s %u %d %d\n", r.date, static_cast<unsigned int>(r.habitId), r.count, r.completed ? 1 : 0);
     writeStr(file, line);
   }
 
@@ -350,8 +302,6 @@ void Store::getTodayDate(char* ymdBuf, size_t ymdLen, char* headerBuf, size_t he
   if (ymdBuf && ymdLen >= kDateLen) formatDate(tm, ymdBuf, ymdLen);
 
   if (headerBuf && headerLen >= 32) {
-    static const char* kDays[] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
-    static const char* kMonths[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
     const char* dayName = (tm.tm_wday >= 0 && tm.tm_wday < 7) ? kDays[tm.tm_wday] : "";
     const char* monName = (tm.tm_mon >= 0 && tm.tm_mon < 12) ? kMonths[tm.tm_mon] : "";
     std::snprintf(headerBuf, headerLen, "%s, %s %d", dayName, monName, tm.tm_mday);
@@ -390,17 +340,10 @@ bool Store::addHabit(const char* name) {
 
 bool Store::addHabitAt(int index, const char* name) {
   if (index < 0 || index >= kMaxHabits || !name || name[0] == '\0') return false;
+  habits_[index] = Habit{};
   habits_[index].id = static_cast<uint32_t>(index + 1);
   std::strncpy(habits_[index].name, name, kNameMax - 1);
   habits_[index].name[kNameMax - 1] = '\0';
-  habits_[index].type = HabitType::Binary;
-  habits_[index].target = 1;
-  habits_[index].increment = 1;
-  habits_[index].streak = 0;
-  habits_[index].bestStreak = 0;
-  habits_[index].totalCompleted = 0;
-  habits_[index].cue[0] = '\0';
-  habits_[index].identity[0] = '\0';
   save();
   return true;
 }
@@ -455,8 +398,6 @@ void Store::formatDisplayDate(const char* baseDate, int dayOffset, char* outYmd,
     struct tm tm {};
     if (parseDate(ymd, tm)) {
       std::mktime(&tm);
-      static const char* kDays[] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
-      static const char* kMonths[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
       const char* dayName = (tm.tm_wday >= 0 && tm.tm_wday < 7) ? kDays[tm.tm_wday] : "";
       const char* monName = (tm.tm_mon >= 0 && tm.tm_mon < 12) ? kMonths[tm.tm_mon] : "";
 

@@ -25,6 +25,7 @@ This fork extends the firmware with powerful built-in apps, reading conveniences
 
 - 🤖 **Google Gemini AI Assistant**: Ask questions, explain concepts, and brainstorm directly on your e-reader screen.
 - 🎯 **Habits (Minimalist 3-Habit Tracker)**: Distraction-free daily habit tracker with simple Yes/No checkmark toggles, day-by-day navigation to log past days, weekly overview matrix, streaks, and quick 1-tap presets.
+- 🧘 **Breathe (Relaxation & Mindfulness)**: Guided breathing sessions with dynamic e-ink mandala visualization, preset/custom breath counts, live estimated session time, and 3 proven techniques (Equal, 4-7-8, and Box Breathing).
 - ⌨️ **Native iPhone-Style Keyboard**: Authentic 4-row touch keyboard with live on-screen typing, ready-made prompt templates, Shift, and Symbol modes.
 - 📝 **Notes & Checklists**: On-device note-taking with on-screen keyboard, live phone typing over Wi-Fi (`/n`), and sleep screen pinning.
 - 🎴 **Anki (Spaced Repetition & Flashcards)**: Native Anki flashcard review powered by the FSRS algorithm with Cloze deletions and image support.
@@ -112,6 +113,24 @@ A distraction-free, zero-clutter habit tracker designed around the Rule of 3—f
 - **Weekly Matrix Overview**: Tap the **`WEEK`** tab for a 7-day glance across all habits. Tap any day column to jump directly to that date in the tracker.
 - **Manage & 1-Tap Presets**: Tap **`MANAGE`** to remove or rename habits, or quickly fill empty slots with 1-tap presets (`READ`, `WALK`, `MEDITATE`, `WORKOUT`, `WATER`, `JOURNAL`) or custom names using the touch keyboard.
 - **Persistent Streaks & History**: Automatically tracks daily streaks, best streaks, and total completion counts across sessions.
+
+---
+
+## 🧘 Breathe (Relaxation & Mindfulness)
+
+A simple, calming breathing companion designed specifically for e-ink displays to help you de-stress, reset your nervous system, or focus.
+
+- **3 Guided Techniques**:
+  - **Equal Breathing (Sama Vritti)**: 4s Inhale, 4s Exhale (8s cycle) — fosters balanced calm and mental stability.
+  - **4-7-8 Breathing (Dr. Andrew Weil)**: 4s Inhale, 7s Hold, 8s Exhale (19s cycle) — powerful nervous system reset for anxiety relief and deep relaxation before sleep.
+  - **Box Breathing (Navy SEALs)**: 4s Inhale, 4s Hold, 4s Exhale, 4s Hold (16s cycle) — heightens focus, concentration, and situational calm under stress.
+- **Configurable Breath Counts & Dynamic Time Estimate**: Choose quick presets (`4`, `8`, `12`, `16` breaths) or adjust breath count with `[-]` and `[+]` steppers. Dynamic banner calculates exact estimated session duration in real time.
+- **E-Ink Paced Visualizations**:
+  - Expanding and contracting concentric mandala rings synchronized to inhale and exhale phases.
+  - High-contrast central white knockout pill displaying current action (`BREATHE IN`, `HOLD`, `BREATHE OUT`) and countdown seconds for effortless readability.
+  - Dedicated square perimeter frame with a traveling dot tracker for Box Breathing.
+  - Orbital alignment marks for Hold phases and mindful guidance cues.
+- **Session Controls & Summary**: Intuitive `[ PAUSE ]`, `[ RESUME ]`, and `[ STOP ]` controls, live progress bar, and an end-of-session completion screen displaying total mindful breaths and total elapsed time.
 
 ---
 

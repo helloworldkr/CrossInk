@@ -8,23 +8,11 @@ namespace habits {
 constexpr int kMaxHabits = 3;  // Exactly 3 active habits
 constexpr int kMaxRecords = 120; // 40 days of history for 3 habits
 constexpr size_t kNameMax = 32;
-constexpr size_t kUnitMax = 16;
-constexpr size_t kTextMax = 48;
 constexpr size_t kDateLen = 12;  // "YYYY-MM-DD" + null
-
-enum class HabitType : uint8_t { Count, Binary };
 
 struct Habit {
   uint32_t id = 0;
   char name[kNameMax] = {};
-  HabitType type = HabitType::Count;
-  int target = 10;
-  char unit[kUnitMax] = {};
-  int increment = 1;
-  int minimum = 0;
-  char cue[kTextMax] = {};
-  char identity[kTextMax] = {};
-
   int streak = 0;
   int bestStreak = 0;
   int totalCompleted = 0;
@@ -35,7 +23,6 @@ struct DailyRecord {
   uint32_t habitId = 0;
   int count = 0;
   bool completed = false;
-  bool minimumReached = false;
 };
 
 class Store {
@@ -52,9 +39,6 @@ class Store {
   const Habit* habitById(uint32_t id) const;
 
   DailyRecord getRecord(uint32_t habitId, const char* date) const;
-  void setRecord(uint32_t habitId, const char* date, int count);
-  void increment(uint32_t habitId, const char* date);
-  void decrement(uint32_t habitId, const char* date);
   void toggleBinary(uint32_t habitId, const char* date);
 
   void recalculateStreaks(const char* todayDate);
