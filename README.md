@@ -109,7 +109,7 @@ Review your Anki flashcard decks on an eye-friendly e-ink screen before bed or d
 - **FSRS Algorithm**: Implements the modern Free Spaced Repetition Scheduler for optimized memory retention.
 - **Card Review**: Tap or press Confirm to reveal answers, then rate retention as *Again*, *Hard*, *Good*, or *Easy*.
 - **Rich Card Support**: Supports Cloze deletions (`{{c1::answer}}`), markdown formatting, and embedded illustrations.
-- **Importing Decks**: Convert any existing Anki `.apkg` deck using the one-click web installer at [crossplay.ma-r-s.com/study](https://crossplay.ma-r-s.com/study/) or the included Python converter script located in [`tools_local/study/`](./tools_local/study/).
+- **Importing Decks**: Convert any existing Anki `.apkg` deck using the one-click web installer at [crossplay.ma-r-s.com/study](https://crossplay.ma-r-s.com/study/) or the included Python converter script located in [`tools_local/study/`](./tools_local/study/). See the [Anki Testing Guide](docs/anki-guide.md) for full setup and testing instructions.
 
 ---
 
