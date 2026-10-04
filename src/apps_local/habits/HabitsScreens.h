@@ -21,6 +21,7 @@ inline constexpr fui::ActionId ActionGoToday = 6;
 inline constexpr fui::ActionId ActionTabDaily = 7;
 inline constexpr fui::ActionId ActionTabWeek = 8;
 inline constexpr fui::ActionId ActionTabManage = 9;
+inline constexpr fui::ActionId ActionTabCompleted = 17;
 
 // Week view day columns
 inline constexpr fui::ActionId ActionWeekDay0 = 10;
@@ -44,6 +45,12 @@ inline constexpr fui::ActionId ActionManageRemove2 = 28;
 inline constexpr fui::ActionId ActionManageGoal0 = 40;
 inline constexpr fui::ActionId ActionManageGoal1 = 41;
 inline constexpr fui::ActionId ActionManageGoal2 = 42;
+inline constexpr fui::ActionId ActionHabitComplete0 = 45;
+inline constexpr fui::ActionId ActionHabitComplete1 = 46;
+inline constexpr fui::ActionId ActionHabitComplete2 = 47;
+
+// Completed list actions
+inline constexpr fui::ActionId ActionCompletedRemove0 = 70;
 
 // Presets
 inline constexpr fui::ActionId ActionPreset0 = 30;  // READ
@@ -58,5 +65,7 @@ void buildDaily(toybox::Screen& screen, const ::habits::Store& store, const char
                 const char* displayHeader, int dayOffset);
 void buildWeek(toybox::Screen& screen, const ::habits::Store& store, const char* todayDate);
 void buildManage(toybox::Screen& screen, const ::habits::Store& store);
+void buildCompleted(toybox::Screen& screen, const ::habits::Store& store);
 
 }  // namespace habitsui
+

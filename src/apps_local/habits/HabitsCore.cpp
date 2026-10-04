@@ -51,6 +51,10 @@ Store::Store() {
 
 void Store::initDefaults() {
   recordCount_ = 0;
+  completedCount_ = 0;
+  for (int i = 0; i < kMaxCompletedHabits; ++i) {
+    completed_[i] = CompletedHabit{};
+  }
   for (int i = 0; i < kMaxHabits; ++i) {
     habits_[i] = Habit{};
     habits_[i].targetStreak = 21;
@@ -89,6 +93,61 @@ const Habit* Store::habitById(uint32_t id) const {
   }
   return nullptr;
 }
+
+const CompletedHabit* Store::completedHabitAt(int index) const {
+  if (index < 0 || index >= completedCount_) return nullptr;
+  return &completed_[index];
+}
+
+bool Store::completeHabit(int index, const char* completionDate) {
+  if (index < 0 || index >= kMaxHabits || habits_[index].name[0] == '\0') return false;
+
+  // Shift completed list down to insert newest at index 0
+  if (completedCount_ >= kMaxCompletedHabits) {
+    completedCount_ = kMaxCompletedHabits - 1;
+  }
+  for (int i = completedCount_; i > 0; --i) {
+    completed_[i] = completed_[i - 1];
+  }
+
+  CompletedHabit& ch = completed_[0];
+  std::strncpy(ch.name, habits_[index].name, kNameMax - 1);
+  ch.name[kNameMax - 1] = '\0';
+  ch.targetStreak = (habits_[index].targetStreak > 0) ? habits_[index].targetStreak : 21;
+  ch.finalStreak = habits_[index].streak;
+  ch.totalDays = habits_[index].totalCompleted;
+  if (completionDate && completionDate[0] != '\0') {
+    std::strncpy(ch.completionDate, completionDate, kDateLen - 1);
+    ch.completionDate[kDateLen - 1] = '\0';
+  } else {
+    ch.completionDate[0] = '\0';
+  }
+  ++completedCount_;
+
+  // Remove habit from active slots (frees up the slot)
+  removeHabit(index);
+  return true;
+}
+
+bool Store::removeCompletedHabit(int index) {
+  if (index < 0 || index >= completedCount_) return false;
+  for (int i = index; i < completedCount_ - 1; ++i) {
+    completed_[i] = completed_[i + 1];
+  }
+  completed_[completedCount_ - 1] = CompletedHabit{};
+  --completedCount_;
+  save();
+  return true;
+}
+
+void Store::clearCompletedHabits() {
+  completedCount_ = 0;
+  for (int i = 0; i < kMaxCompletedHabits; ++i) {
+    completed_[i] = CompletedHabit{};
+  }
+  save();
+}
+
 
 DailyRecord Store::getRecord(uint32_t habitId, const char* date) const {
   for (int i = 0; i < recordCount_; ++i) {
@@ -200,8 +259,9 @@ bool Store::load() {
   }
 
   recordCount_ = 0;
+  completedCount_ = 0;
   int habitSlot = 0;
-  bool inRecords = false;
+  int section = 0;  // 0 = HABIT, 1 = RECORDS, 2 = COMPLETED
 
   char* line = buffer;
   char* nextLine = nullptr;
@@ -220,16 +280,24 @@ bool Store::load() {
     }
 
     if (std::strcmp(line, "[RECORDS]") == 0) {
-      inRecords = true;
+      section = 1;
       line = nextLine;
       continue;
     }
 
-    if (!inRecords) {
-      if (std::strcmp(line, "[HABIT]") == 0) {
-        line = nextLine;
-        continue;
-      }
+    if (std::strcmp(line, "[COMPLETED]") == 0) {
+      section = 2;
+      line = nextLine;
+      continue;
+    }
+
+    if (std::strcmp(line, "[HABIT]") == 0) {
+      section = 0;
+      line = nextLine;
+      continue;
+    }
+
+    if (section == 0) {
       char* eq = std::strchr(line, '=');
       if (eq) {
         *eq = '\0';
@@ -247,7 +315,7 @@ bool Store::load() {
           }
         }
       }
-    } else {
+    } else if (section == 1) {
       char* p = line;
       char* dStr = strsep(&p, " ");
       char* idStr = strsep(&p, " ");
@@ -259,6 +327,25 @@ bool Store::load() {
         r.habitId = static_cast<uint32_t>(std::atoi(idStr));
         r.count = std::atoi(cntStr);
         r.completed = (std::atoi(compStr) != 0);
+      }
+    } else if (section == 2) {
+      char* p = line;
+      char* dStr = strsep(&p, " ");
+      char* targetStr = strsep(&p, " ");
+      char* finalStr = strsep(&p, " ");
+      char* totalStr = strsep(&p, " ");
+      if (dStr && targetStr && finalStr && totalStr && p && completedCount_ < kMaxCompletedHabits) {
+        CompletedHabit& ch = completed_[completedCount_++];
+        if (std::strcmp(dStr, "-") != 0) {
+          std::strncpy(ch.completionDate, dStr, kDateLen - 1);
+        } else {
+          ch.completionDate[0] = '\0';
+        }
+        ch.targetStreak = std::atoi(targetStr);
+        ch.finalStreak = std::atoi(finalStr);
+        ch.totalDays = std::atoi(totalStr);
+        std::strncpy(ch.name, p, kNameMax - 1);
+        ch.name[kNameMax - 1] = '\0';
       }
     }
     line = nextLine;
@@ -292,6 +379,16 @@ bool Store::save() {
     std::snprintf(line, sizeof(line), "%s %u %d %d\n", r.date, static_cast<unsigned int>(r.habitId), r.count, r.completed ? 1 : 0);
     writeStr(file, line);
   }
+
+  writeStr(file, "[COMPLETED]\n");
+  for (int i = 0; i < completedCount_; ++i) {
+    const auto& c = completed_[i];
+    std::snprintf(line, sizeof(line), "%s %d %d %d %s\n",
+                  c.completionDate[0] ? c.completionDate : "-",
+                  c.targetStreak, c.finalStreak, c.totalDays, c.name);
+    writeStr(file, line);
+  }
+
 
   file.close();
   Storage.remove(kFilePath);

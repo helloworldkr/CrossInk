@@ -10,6 +10,8 @@ constexpr int kMaxRecords = 120; // 40 days of history for 3 habits
 constexpr size_t kNameMax = 32;
 constexpr size_t kDateLen = 12;  // "YYYY-MM-DD" + null
 
+constexpr int kMaxCompletedHabits = 20;
+
 struct Habit {
   uint32_t id = 0;
   char name[kNameMax] = {};
@@ -17,6 +19,14 @@ struct Habit {
   int bestStreak = 0;
   int totalCompleted = 0;
   int targetStreak = 21;
+};
+
+struct CompletedHabit {
+  char name[kNameMax] = {};
+  int targetStreak = 21;
+  int finalStreak = 0;
+  int totalDays = 0;
+  char completionDate[kDateLen] = {};
 };
 
 struct DailyRecord {
@@ -39,6 +49,12 @@ class Store {
   Habit* habitById(uint32_t id);
   const Habit* habitById(uint32_t id) const;
 
+  int completedHabitCount() const { return completedCount_; }
+  const CompletedHabit* completedHabitAt(int index) const;
+  bool completeHabit(int index, const char* completionDate);
+  bool removeCompletedHabit(int index);
+  void clearCompletedHabits();
+
   DailyRecord getRecord(uint32_t habitId, const char* date) const;
   void toggleBinary(uint32_t habitId, const char* date);
 
@@ -60,6 +76,8 @@ class Store {
 
  private:
   Habit habits_[kMaxHabits];
+  CompletedHabit completed_[kMaxCompletedHabits];
+  int completedCount_ = 0;
   DailyRecord records_[kMaxRecords];
   int recordCount_ = 0;
 
@@ -68,3 +86,4 @@ class Store {
 };
 
 }  // namespace habits
+

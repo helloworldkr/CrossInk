@@ -31,7 +31,86 @@ static inline void drawText(toybox::Screen& screen, const fui::Rect& r, const ch
   screen.target().text(r, str, style);
 }
 
+static inline void drawFooterTabs(toybox::Screen& screen, int activeTab, int completedCount, int dayOffset = 0) {
+  const fui::DeviceContext& device = screen.device();
+  const auto ink = fui::Paint::solid(fui::Color::Black);
+  const int leftMargin = toybox::kMargin;
+  const int rightMargin = device.width - toybox::kMargin;
+  const int contentWidth = rightMargin - leftMargin;
+
+  constexpr int footerHeight = 44;
+  const int footerY = device.height - footerHeight - 12;
+  constexpr int tabGap = 6;
+  const int tabWidth = (contentWidth - tabGap * 3) / 4;
+
+  int tabX = leftMargin;
+
+  // Tab 0: TODAY / LOG
+  const fui::Rect tab0Rect = fui::makeRect(tabX, footerY, tabWidth, footerHeight);
+  if (activeTab == 0) {
+    screen.target().fill(tab0Rect, ink, 4);
+    drawText(screen, fui::makeRect(tab0Rect.x, tab0Rect.y + 11, tab0Rect.width, 22),
+             (dayOffset == 0) ? "TODAY" : "LOG", toybox::kTileFont, fui::TextAlign::Center, fui::Color::White);
+  } else {
+    screen.target().stroke(tab0Rect, ink, 1, 4);
+    drawText(screen, fui::makeRect(tab0Rect.x, tab0Rect.y + 11, tab0Rect.width, 22),
+             "TODAY", toybox::kTileFont, fui::TextAlign::Center);
+  }
+  addBtn(screen, ActionTabDaily, tab0Rect);
+  tabX += tabWidth + tabGap;
+
+  // Tab 1: WEEK
+  const fui::Rect tab1Rect = fui::makeRect(tabX, footerY, tabWidth, footerHeight);
+  if (activeTab == 1) {
+    screen.target().fill(tab1Rect, ink, 4);
+    drawText(screen, fui::makeRect(tab1Rect.x, tab1Rect.y + 11, tab1Rect.width, 22),
+             "WEEK", toybox::kTileFont, fui::TextAlign::Center, fui::Color::White);
+  } else {
+    screen.target().stroke(tab1Rect, ink, 1, 4);
+    drawText(screen, fui::makeRect(tab1Rect.x, tab1Rect.y + 11, tab1Rect.width, 22),
+             "WEEK", toybox::kTileFont, fui::TextAlign::Center);
+  }
+  addBtn(screen, ActionTabWeek, tab1Rect);
+  tabX += tabWidth + tabGap;
+
+  // Tab 2: MANAGE
+  const fui::Rect tab2Rect = fui::makeRect(tabX, footerY, tabWidth, footerHeight);
+  if (activeTab == 2) {
+    screen.target().fill(tab2Rect, ink, 4);
+    drawText(screen, fui::makeRect(tab2Rect.x, tab2Rect.y + 11, tab2Rect.width, 22),
+             "MANAGE", toybox::kTileFont, fui::TextAlign::Center, fui::Color::White);
+  } else {
+    screen.target().stroke(tab2Rect, ink, 1, 4);
+    drawText(screen, fui::makeRect(tab2Rect.x, tab2Rect.y + 11, tab2Rect.width, 22),
+             "MANAGE", toybox::kTileFont, fui::TextAlign::Center);
+  }
+  addBtn(screen, ActionTabManage, tab2Rect);
+  tabX += tabWidth + tabGap;
+
+  // Tab 3: DONE (%d)
+  const int lastTabW = contentWidth - (tabX - leftMargin);
+  const fui::Rect tab3Rect = fui::makeRect(tabX, footerY, lastTabW, footerHeight);
+  char doneLabel[24];
+  if (completedCount > 0) {
+    std::snprintf(doneLabel, sizeof(doneLabel), "DONE (%d)", completedCount);
+  } else {
+    std::strcpy(doneLabel, "DONE");
+  }
+
+  if (activeTab == 3) {
+    screen.target().fill(tab3Rect, ink, 4);
+    drawText(screen, fui::makeRect(tab3Rect.x, tab3Rect.y + 11, tab3Rect.width, 22),
+             doneLabel, toybox::kTileFont, fui::TextAlign::Center, fui::Color::White);
+  } else {
+    screen.target().stroke(tab3Rect, ink, 1, 4);
+    drawText(screen, fui::makeRect(tab3Rect.x, tab3Rect.y + 11, tab3Rect.width, 22),
+             doneLabel, toybox::kTileFont, fui::TextAlign::Center);
+  }
+  addBtn(screen, ActionTabCompleted, tab3Rect);
+}
+
 }  // namespace
+
 
 void buildDaily(toybox::Screen& screen, const ::habits::Store& store, const char* displayDate,
                 const char* displayHeader, int dayOffset) {
@@ -142,11 +221,6 @@ void buildDaily(toybox::Screen& screen, const ::habits::Store& store, const char
       std::snprintf(subBuf, sizeof(subBuf), "BEST: %d DAYS  ·  TOTAL: %d DAYS", h->bestStreak, h->totalCompleted);
       drawText(screen, fui::makeRect(cardBox.x + 18, cardBox.y + 78, cardBox.width - 120, 20), subBuf,
                toybox::kSmallFont, fui::TextAlign::Left, fui::Color::DarkGray);
-
-      const char* hint = rec.completed ? "DONE FOR THIS DAY" : "TAP TO MARK YES";
-      drawText(screen, fui::makeRect(cardBox.x + 18, cardBox.y + 102, cardBox.width - 120, 20), hint,
-               toybox::kSmallFont, fui::TextAlign::Left, rec.completed ? fui::Color::Black : fui::Color::DarkGray);
-
       // Right column: Big 64x64 Yes/No Checkbox
       constexpr int boxSize = 64;
       const fui::Rect checkRect = fui::makeRect(cardBox.x + cardBox.width - boxSize - 18,
@@ -163,6 +237,19 @@ void buildDaily(toybox::Screen& screen, const ::habits::Store& store, const char
       }
 
       addBtn(screen, static_cast<fui::ActionId>(ActionHabitTap0 + i), cardBox);
+
+      if (h->streak >= target) {
+        // Graduate / Complete button right in the card (added after cardBox so it intercepts tap)
+        const fui::Rect gradRect = fui::makeRect(cardBox.x + 18, cardBox.y + 98, 196, 26);
+        screen.target().fill(gradRect, ink, 4);
+        drawText(screen, fui::makeRect(gradRect.x, gradRect.y + 5, gradRect.width, 18),
+                 "★ GRADUATE HABIT", toybox::kSmallFont, fui::TextAlign::Center, fui::Color::White);
+        addBtn(screen, static_cast<fui::ActionId>(ActionHabitComplete0 + i), gradRect);
+      } else {
+        const char* hint = rec.completed ? "DONE FOR THIS DAY" : "TAP TO MARK YES";
+        drawText(screen, fui::makeRect(cardBox.x + 18, cardBox.y + 102, cardBox.width - 120, 20), hint,
+                 toybox::kSmallFont, fui::TextAlign::Left, rec.completed ? fui::Color::Black : fui::Color::DarkGray);
+      }
 
     } else {
       // Empty Slot Card
@@ -184,35 +271,7 @@ void buildDaily(toybox::Screen& screen, const ::habits::Store& store, const char
   }
 
   // --- 4. Bottom Navigation Tabs ---
-  constexpr int footerHeight = 44;
-  const int footerY = device.height - footerHeight - 12;
-  constexpr int tabGap = 12;
-  const int tabWidth = (contentWidth - tabGap * 2) / 3;
-
-  int tabX = leftMargin;
-
-  // Tab 1: TODAY / LOG (active)
-  const fui::Rect tab1Rect = fui::makeRect(tabX, footerY, tabWidth, footerHeight);
-  screen.target().fill(tab1Rect, ink, 4);
-  drawText(screen, fui::makeRect(tab1Rect.x, tab1Rect.y + 11, tab1Rect.width, 22), (dayOffset == 0) ? "TODAY" : "LOG",
-           toybox::kTileFont, fui::TextAlign::Center, fui::Color::White);
-  addBtn(screen, ActionTabDaily, tab1Rect);
-  tabX += tabWidth + tabGap;
-
-  // Tab 2: WEEK
-  const fui::Rect tab2Rect = fui::makeRect(tabX, footerY, tabWidth, footerHeight);
-  screen.target().stroke(tab2Rect, ink, 1, 4);
-  drawText(screen, fui::makeRect(tab2Rect.x, tab2Rect.y + 11, tab2Rect.width, 22), "WEEK", toybox::kTileFont,
-           fui::TextAlign::Center);
-  addBtn(screen, ActionTabWeek, tab2Rect);
-  tabX += tabWidth + tabGap;
-
-  // Tab 3: MANAGE
-  const fui::Rect tab3Rect = fui::makeRect(tabX, footerY, contentWidth - (tabX - leftMargin), footerHeight);
-  screen.target().stroke(tab3Rect, ink, 1, 4);
-  drawText(screen, fui::makeRect(tab3Rect.x, tab3Rect.y + 11, tab3Rect.width, 22), "MANAGE", toybox::kTileFont,
-           fui::TextAlign::Center);
-  addBtn(screen, ActionTabManage, tab3Rect);
+  drawFooterTabs(screen, 0, store.completedHabitCount(), dayOffset);
 }
 
 void buildWeek(toybox::Screen& screen, const ::habits::Store& store, const char* todayDate) {
@@ -316,15 +375,10 @@ void buildWeek(toybox::Screen& screen, const ::habits::Store& store, const char*
     rowY += rowHeight;
   }
 
-  // Bottom door: [ < BACK TO TODAY ]
-  constexpr int footerHeight = 44;
-  const int footerY = device.height - footerHeight - 12;
-  const fui::Rect backRect = fui::makeRect(leftMargin, footerY, contentWidth, footerHeight);
-  screen.target().fill(backRect, ink, 4);
-  drawText(screen, fui::makeRect(backRect.x, backRect.y + 11, backRect.width, 22), "< BACK TO TODAY", toybox::kTileFont,
-           fui::TextAlign::Center, fui::Color::White);
-  addBtn(screen, ActionTabDaily, backRect);
+  // Bottom Navigation Tabs
+  drawFooterTabs(screen, 1, store.completedHabitCount());
 }
+
 
 void buildManage(toybox::Screen& screen, const ::habits::Store& store) {
   toybox::absoluteChrome(screen);
@@ -356,7 +410,7 @@ void buildManage(toybox::Screen& screen, const ::habits::Store& store) {
 
   // 3 Slot Cards
   int currentY = ruleY + 36;
-  constexpr int slotH = 82;
+  constexpr int slotH = 88;
   constexpr int slotGap = 8;
 
   for (int i = 0; i < habits::kMaxHabits; ++i) {
@@ -370,31 +424,47 @@ void buildManage(toybox::Screen& screen, const ::habits::Store& store) {
       // Habit Name
       char nameBuf[48];
       std::snprintf(nameBuf, sizeof(nameBuf), "%d. %s", i + 1, h->name);
-      drawText(screen, fui::makeRect(box.x + 14, box.y + 10, box.width - 246, 28), nameBuf, toybox::kUiFont);
+      drawText(screen, fui::makeRect(box.x + 14, box.y + 12, box.width - 200, 28), nameBuf, toybox::kUiFont);
 
       char statsBuf[64];
       std::snprintf(statsBuf, sizeof(statsBuf), "Streak: %d / %dd  ·  Best: %dd", h->streak, target, h->bestStreak);
-      drawText(screen, fui::makeRect(box.x + 14, box.y + 46, box.width - 246, 20), statsBuf, toybox::kSmallFont,
+      drawText(screen, fui::makeRect(box.x + 14, box.y + 44, box.width - 200, 20), statsBuf, toybox::kSmallFont,
                fui::TextAlign::Left, fui::Color::DarkGray);
 
-      // Goal button [ GOAL ]
-      const fui::Rect goalRect = fui::makeRect(box.x + box.width - 232, box.y + 20, 72, 42);
+      if (h->streak >= target) {
+        drawText(screen, fui::makeRect(box.x + 14, box.y + 64, box.width - 200, 18),
+                 "★ Goal reached! Ready to graduate", toybox::kSmallFont, fui::TextAlign::Left, fui::Color::Black);
+      }
+
+      // Top row buttons: [ COMPLETE / GRADUATE ] & [ GOAL ]
+      const fui::Rect compRect = fui::makeRect(box.x + box.width - 186, box.y + 10, 104, 32);
+      if (h->streak >= target) {
+        screen.target().fill(compRect, ink, 4);
+        drawText(screen, fui::makeRect(compRect.x, compRect.y + 7, compRect.width, 18), "GRADUATE ★",
+                 toybox::kSmallFont, fui::TextAlign::Center, fui::Color::White);
+      } else {
+        screen.target().stroke(compRect, ink, 1, 4);
+        drawText(screen, fui::makeRect(compRect.x, compRect.y + 7, compRect.width, 18), "COMPLETE",
+                 toybox::kSmallFont, fui::TextAlign::Center);
+      }
+      addBtn(screen, static_cast<fui::ActionId>(ActionHabitComplete0 + i), compRect);
+
+      const fui::Rect goalRect = fui::makeRect(box.x + box.width - 74, box.y + 10, 66, 32);
       screen.target().stroke(goalRect, ink, 1, 4);
-      drawText(screen, fui::makeRect(goalRect.x, goalRect.y + 11, goalRect.width, 20), "GOAL", toybox::kTileFont,
+      drawText(screen, fui::makeRect(goalRect.x, goalRect.y + 7, goalRect.width, 18), "GOAL", toybox::kSmallFont,
                fui::TextAlign::Center);
       addBtn(screen, static_cast<fui::ActionId>(ActionManageGoal0 + i), goalRect);
 
-      // Rename button [ RENAME ]
-      const fui::Rect renRect = fui::makeRect(box.x + box.width - 154, box.y + 20, 72, 42);
+      // Bottom row buttons: [ RENAME ] & [ REMOVE ]
+      const fui::Rect renRect = fui::makeRect(box.x + box.width - 186, box.y + 46, 94, 32);
       screen.target().stroke(renRect, ink, 1, 4);
-      drawText(screen, fui::makeRect(renRect.x, renRect.y + 11, renRect.width, 20), "RENAME", toybox::kTileFont,
+      drawText(screen, fui::makeRect(renRect.x, renRect.y + 7, renRect.width, 18), "RENAME", toybox::kSmallFont,
                fui::TextAlign::Center);
       addBtn(screen, static_cast<fui::ActionId>(ActionManageRename0 + i), renRect);
 
-      // Remove button [ REMOVE ]
-      const fui::Rect remRect = fui::makeRect(box.x + box.width - 76, box.y + 20, 72, 42);
+      const fui::Rect remRect = fui::makeRect(box.x + box.width - 84, box.y + 46, 76, 32);
       screen.target().stroke(remRect, ink, 1, 4);
-      drawText(screen, fui::makeRect(remRect.x, remRect.y + 11, remRect.width, 20), "REMOVE", toybox::kTileFont,
+      drawText(screen, fui::makeRect(remRect.x, remRect.y + 7, remRect.width, 18), "REMOVE", toybox::kSmallFont,
                fui::TextAlign::Center);
       addBtn(screen, static_cast<fui::ActionId>(ActionManageRemove0 + i), remRect);
 
@@ -402,13 +472,13 @@ void buildManage(toybox::Screen& screen, const ::habits::Store& store) {
       // Empty slot
       char emptyBuf[48];
       std::snprintf(emptyBuf, sizeof(emptyBuf), "Slot %d: (Empty)", i + 1);
-      drawText(screen, fui::makeRect(box.x + 14, box.y + 28, box.width - 160, 26), emptyBuf, toybox::kTileFont,
+      drawText(screen, fui::makeRect(box.x + 14, box.y + 30, box.width - 160, 26), emptyBuf, toybox::kTileFont,
                fui::TextAlign::Left, fui::Color::DarkGray);
 
       // Add button [ + ADD ]
-      const fui::Rect addRect = fui::makeRect(box.x + box.width - 110, box.y + 20, 98, 42);
+      const fui::Rect addRect = fui::makeRect(box.x + box.width - 110, box.y + 22, 98, 44);
       screen.target().fill(addRect, ink, 4);
-      drawText(screen, fui::makeRect(addRect.x, addRect.y + 11, addRect.width, 20), "+ ADD", toybox::kTileFont,
+      drawText(screen, fui::makeRect(addRect.x, addRect.y + 12, addRect.width, 20), "+ ADD", toybox::kTileFont,
                fui::TextAlign::Center, fui::Color::White);
       addBtn(screen, static_cast<fui::ActionId>(ActionManageAdd0 + i), addRect);
     }
@@ -417,18 +487,18 @@ void buildManage(toybox::Screen& screen, const ::habits::Store& store) {
   }
 
   // Quick 1-tap Presets
-  const int presetStartY = currentY + 18;
+  const int presetStartY = currentY + 14;
   drawText(screen, fui::makeRect(leftMargin, presetStartY, contentWidth, 22), "QUICK 1-TAP PRESETS:", toybox::kTileFont);
-  drawText(screen, fui::makeRect(leftMargin, presetStartY + 26, contentWidth, 20),
+  drawText(screen, fui::makeRect(leftMargin, presetStartY + 24, contentWidth, 18),
            "Tap any preset below to instantly fill an empty slot:", toybox::kSmallFont, fui::TextAlign::Left,
            fui::Color::DarkGray);
 
-  constexpr int pBtnH = 40;
+  constexpr int pBtnH = 38;
   constexpr int pGap = 8;
   const int pBtnW = (contentWidth - pGap * 2) / 3;
 
   static const char* const kPresetNames[6] = {"READ", "WALK", "MEDITATE", "WORKOUT", "WATER", "JOURNAL"};
-  const int row1Y = presetStartY + 52;
+  const int row1Y = presetStartY + 48;
   const int row2Y = row1Y + pBtnH + pGap;
 
   for (int p = 0; p < 6; ++p) {
@@ -436,27 +506,118 @@ void buildManage(toybox::Screen& screen, const ::habits::Store& store) {
     const int y = (p < 3) ? row1Y : row2Y;
     const fui::Rect pRect = fui::makeRect(leftMargin + col * (pBtnW + pGap), y, pBtnW, pBtnH);
     screen.target().stroke(pRect, ink, 1, 4);
-    drawText(screen, fui::makeRect(pRect.x, pRect.y + 10, pRect.width, 20), kPresetNames[p], toybox::kTileFont,
+    drawText(screen, fui::makeRect(pRect.x, pRect.y + 9, pRect.width, 20), kPresetNames[p], toybox::kTileFont,
              fui::TextAlign::Center);
     addBtn(screen, static_cast<fui::ActionId>(ActionPreset0 + p), pRect);
   }
 
   // Or Custom Type
-  const int customY = row2Y + pBtnH + 12;
-  const fui::Rect customRect = fui::makeRect(leftMargin, customY, contentWidth, 40);
+  const int customY = row2Y + pBtnH + 10;
+  const fui::Rect customRect = fui::makeRect(leftMargin, customY, contentWidth, 38);
   screen.target().stroke(customRect, ink, 1, 4);
-  drawText(screen, fui::makeRect(customRect.x, customRect.y + 10, customRect.width, 20), "+ TYPE CUSTOM HABIT NAME",
+  drawText(screen, fui::makeRect(customRect.x, customRect.y + 9, customRect.width, 20), "+ TYPE CUSTOM HABIT NAME",
            toybox::kTileFont, fui::TextAlign::Center);
   addBtn(screen, ActionPresetCustom, customRect);
 
-  // Bottom door [ < BACK TO TRACKER ]
-  constexpr int footerHeight = 44;
-  const int footerY = device.height - footerHeight - 12;
-  const fui::Rect backRect = fui::makeRect(leftMargin, footerY, contentWidth, footerHeight);
-  screen.target().fill(backRect, ink, 4);
-  drawText(screen, fui::makeRect(backRect.x, backRect.y + 11, backRect.width, 22), "< BACK TO TRACKER", toybox::kTileFont,
-           fui::TextAlign::Center, fui::Color::White);
-  addBtn(screen, ActionTabDaily, backRect);
+  // Bottom Navigation Tabs
+  drawFooterTabs(screen, 2, store.completedHabitCount());
+}
+
+void buildCompleted(toybox::Screen& screen, const ::habits::Store& store) {
+  toybox::absoluteChrome(screen);
+  const fui::DeviceContext& device = screen.device();
+  const auto ink = fui::Paint::solid(fui::Color::Black);
+
+  const int leftMargin = toybox::kMargin;
+  const int rightMargin = device.width - toybox::kMargin;
+  const int contentWidth = rightMargin - leftMargin;
+
+  // Header: COMPLETED HABITS              %d ARCHIVED
+  constexpr int topMargin = 14;
+  constexpr int headerHeight = 34;
+
+  drawText(screen, fui::makeRect(leftMargin, topMargin, contentWidth - 140, headerHeight), "COMPLETED HABITS",
+           toybox::kUiFont);
+
+  const int completedCount = store.completedHabitCount();
+  char countBuf[32];
+  std::snprintf(countBuf, sizeof(countBuf), "%d ARCHIVED", completedCount);
+  drawText(screen, fui::makeRect(rightMargin - 140, topMargin, 140, headerHeight), countBuf, toybox::kTileFont,
+           fui::TextAlign::Right);
+
+  const int ruleY = topMargin + headerHeight + 2;
+  screen.target().fill(fui::makeRect(leftMargin, ruleY, contentWidth, 2), ink);
+
+  // Subtitle
+  drawText(screen, fui::makeRect(leftMargin, ruleY + 8, contentWidth, 22),
+           "YOUR GRADUATED HABITS & ARCHIVED ACHIEVEMENTS:", toybox::kSmallFont, fui::TextAlign::Left,
+           fui::Color::DarkGray);
+
+  int currentY = ruleY + 34;
+
+  if (completedCount == 0) {
+    const fui::Rect emptyBox = fui::makeRect(leftMargin, currentY + 30, contentWidth, 160);
+    screen.target().stroke(emptyBox, ink, 1, 6);
+
+    drawText(screen, fui::makeRect(emptyBox.x, emptyBox.y + 36, emptyBox.width, 28),
+             "NO COMPLETED HABITS YET", toybox::kUiFont, fui::TextAlign::Center);
+    drawText(screen, fui::makeRect(emptyBox.x + 20, emptyBox.y + 74, emptyBox.width - 40, 22),
+             "Reach your target streak and complete a habit", toybox::kTileFont, fui::TextAlign::Center,
+             fui::Color::DarkGray);
+    drawText(screen, fui::makeRect(emptyBox.x + 20, emptyBox.y + 102, emptyBox.width - 40, 20),
+             "to celebrate and archive your progress here!", toybox::kSmallFont, fui::TextAlign::Center,
+             fui::Color::DarkGray);
+  } else {
+    // Show up to 4 completed habits on page (newest on top)
+    const int countToShow = std::min(completedCount, 4);
+    constexpr int cardH = 82;
+    constexpr int cardGap = 8;
+
+    for (int i = 0; i < countToShow; ++i) {
+      const auto* c = store.completedHabitAt(i);
+      if (!c) continue;
+
+      const fui::Rect box = fui::makeRect(leftMargin, currentY, contentWidth, cardH);
+      screen.target().stroke(box, ink, 1, 6);
+
+      // Star icon + Name
+      char nameBuf[48];
+      std::snprintf(nameBuf, sizeof(nameBuf), "★ %s", c->name);
+      drawText(screen, fui::makeRect(box.x + 14, box.y + 10, box.width - 100, 26), nameBuf, toybox::kUiFont);
+
+      // Goal badge / streak achieved
+      char goalBadge[64];
+      if (c->finalStreak >= c->targetStreak) {
+        std::snprintf(goalBadge, sizeof(goalBadge), "GOAL MET: %d / %d DAYS STREAK", c->finalStreak, c->targetStreak);
+      } else {
+        std::snprintf(goalBadge, sizeof(goalBadge), "FINAL STREAK: %d / %d DAYS", c->finalStreak, c->targetStreak);
+      }
+      drawText(screen, fui::makeRect(box.x + 14, box.y + 36, box.width - 100, 20), goalBadge, toybox::kTileFont);
+
+      // Details: Completion date & Total days logged
+      char detailsBuf[64];
+      if (c->completionDate[0] != '\0') {
+        std::snprintf(detailsBuf, sizeof(detailsBuf), "Completed: %s  ·  Total logged: %d days",
+                      c->completionDate, c->totalDays);
+      } else {
+        std::snprintf(detailsBuf, sizeof(detailsBuf), "Total logged: %d days", c->totalDays);
+      }
+      drawText(screen, fui::makeRect(box.x + 14, box.y + 56, box.width - 100, 18), detailsBuf,
+               toybox::kSmallFont, fui::TextAlign::Left, fui::Color::DarkGray);
+
+      // [ REMOVE ] button on right
+      const fui::Rect remRect = fui::makeRect(box.x + box.width - 86, box.y + 24, 74, 34);
+      screen.target().stroke(remRect, ink, 1, 4);
+      drawText(screen, fui::makeRect(remRect.x, remRect.y + 8, remRect.width, 18), "REMOVE", toybox::kSmallFont,
+               fui::TextAlign::Center);
+      addBtn(screen, static_cast<fui::ActionId>(ActionCompletedRemove0 + i), remRect);
+
+      currentY += cardH + cardGap;
+    }
+  }
+
+  drawFooterTabs(screen, 3, completedCount);
 }
 
 }  // namespace habitsui
+

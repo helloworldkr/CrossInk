@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include "../../activities/ActivityResult.h"
+#include "../../activities/util/ConfirmationActivity.h"
 #include "../../activities/util/KeyboardEntryActivity.h"
 #include "../Shelf.h"
 #include "../ui/ToyboxFonts.h"
@@ -53,6 +54,46 @@ void HabitsActivity::openManage() {
   interactionsReady_ = false;
   requestUpdate();
 }
+
+void HabitsActivity::openCompleted() {
+  view_ = View::Completed;
+  interactionsReady_ = false;
+  requestUpdate();
+}
+
+void HabitsActivity::confirmCompleteHabit(int slotIndex) {
+  const auto* h = store_.habitAt(slotIndex);
+  if (!h || h->name[0] == '\0') return;
+
+  char heading[64];
+  std::snprintf(heading, sizeof(heading), "Complete %s?", h->name);
+
+  char body[200];
+  const int target = (h->targetStreak > 0) ? h->targetStreak : 21;
+  if (h->streak >= target) {
+    std::snprintf(body, sizeof(body),
+                  "Target goal reached (%d / %d days)!\nGraduate and archive '%s' to completed habits?\nThis will celebrate your achievement and free up the slot.",
+                  h->streak, target, h->name);
+  } else {
+    std::snprintf(body, sizeof(body),
+                  "Current streak: %d / %d days.\nArchive '%s' to completed habits now?\nThis will save your progress and free up the slot.",
+                  h->streak, target, h->name);
+  }
+
+  auto confirm = makeUniqueNoThrow<ConfirmationActivity>(renderer, mappedInput, heading, body);
+  if (!confirm) return;
+
+  startActivityForResult(std::move(confirm), [this, slotIndex](const ActivityResult& result) {
+    if (result.isCancelled) {
+      requestUpdate();
+      return;
+    }
+    store_.completeHabit(slotIndex, todayDate_);
+    store_.recalculateStreaks(todayDate_);
+    openCompleted();
+  });
+}
+
 
 void HabitsActivity::openKeyboardForSlot(int slotIndex, const char* initialText) {
   auto keyboard = makeUniqueNoThrow<KeyboardEntryActivity>(
@@ -128,10 +169,12 @@ void HabitsActivity::loop() {
         return;
       case View::Week:
       case View::Manage:
+      case View::Completed:
         openDaily();
         return;
     }
   }
+
 
   // 2. Touch Screen Interactions
   int x = 0;
@@ -189,6 +232,18 @@ void HabitsActivity::loop() {
     case habitsui::ActionTabManage:
       openManage();
       return;
+
+    case habitsui::ActionTabCompleted:
+      openCompleted();
+      return;
+
+    case habitsui::ActionHabitComplete0:
+    case habitsui::ActionHabitComplete1:
+    case habitsui::ActionHabitComplete2: {
+      const int slot = action.action - habitsui::ActionHabitComplete0;
+      confirmCompleteHabit(slot);
+      return;
+    }
 
     case habitsui::ActionWeekDay0:
     case habitsui::ActionWeekDay1:
@@ -287,6 +342,13 @@ void HabitsActivity::loop() {
     }
 
     default:
+      if (action.action >= habitsui::ActionCompletedRemove0 &&
+          action.action < habitsui::ActionCompletedRemove0 + habits::kMaxCompletedHabits) {
+        const int cIdx = action.action - habitsui::ActionCompletedRemove0;
+        store_.removeCompletedHabit(cIdx);
+        requestUpdate();
+        return;
+      }
       return;
   }
 }
@@ -311,9 +373,14 @@ void HabitsActivity::render(RenderLock&&) {
     case View::Manage:
       habitsui::buildManage(screen, store_);
       break;
+
+    case View::Completed:
+      habitsui::buildCompleted(screen, store_);
+      break;
   }
 
   interactionsReady_ = true;
   toybox::reportOverflow(interactions_, "Habits");
   renderer.displayBuffer();
 }
+

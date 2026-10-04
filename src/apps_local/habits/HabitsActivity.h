@@ -21,14 +21,17 @@ class HabitsActivity final : public Activity {
   void render(RenderLock&&) override;
 
  private:
-  enum class View : uint8_t { Daily, Week, Manage };
+  enum class View : uint8_t { Daily, Week, Manage, Completed };
 
   void openDaily();
   void openWeek();
   void openManage();
+  void openCompleted();
   void updateDisplayDate();
   void openKeyboardForSlot(int slotIndex, const char* initialText = nullptr);
   void openTargetStreakForSlot(int slotIndex, std::string habitName, int currentTarget = 21, bool isNewCreation = true);
+  void confirmCompleteHabit(int slotIndex);
+
 
   habits::Store store_;
   View view_ = View::Daily;
