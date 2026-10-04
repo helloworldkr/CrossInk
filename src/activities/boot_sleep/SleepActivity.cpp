@@ -41,6 +41,7 @@
 #include "images/Logo120.h"
 #include "images/MoonIcon.h"
 #include "../../apps_local/notes/NotesSleep.h"
+#include "../../apps_local/wallpaper/WallpaperSleep.h"
 
 namespace {
 
@@ -581,6 +582,10 @@ void SleepActivity::onEnter() {
 }
 
 void SleepActivity::renderCustomSleepScreen() const {
+  if (wallpaper::drawAsleep(renderer)) {
+    return;
+  }
+
   const auto tryRenderSelection = [this](const SleepImageSelection& selection) {
     FsFile file;
     if (!Storage.openFileForRead("SLP", selection.path, file)) {

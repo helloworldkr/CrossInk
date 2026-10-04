@@ -21,13 +21,14 @@ class KeyboardEntryActivity : public Activity {
   explicit KeyboardEntryActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
                                  std::string title = "Enter Text", std::string initialText = "",
                                  const size_t maxLength = 0, InputType inputType = InputType::Text,
-                                 const size_t minLength = 0)
+                                 const size_t minLength = 0, std::string prompt = "")
       : Activity("KeyboardEntry", renderer, mappedInput),
         title(std::move(title)),
         text(std::move(initialText)),
         maxLength(maxLength),
         inputType(inputType),
-        minLength(minLength) {}
+        minLength(minLength),
+        prompt(std::move(prompt)) {}
 
   void onEnter() override;
   void onExit() override;
@@ -41,7 +42,11 @@ class KeyboardEntryActivity : public Activity {
   size_t maxLength;
   InputType inputType;
   size_t minLength;
+  std::string prompt;
   bool passwordVisible = false;
+
+  int promptBoxHeight() const;
+  void renderPromptBox(int promptY, int promptW) const;
 
   ButtonNavigator buttonNavigator;
 

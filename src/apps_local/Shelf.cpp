@@ -15,13 +15,19 @@
 #include "breathe/BreatheActivity.h"
 #include "gemini/GeminiActivity.h"
 #include "habits/HabitsActivity.h"
+#include "journal/JournalActivity.h"
 #include "notes/NotesActivity.h"
+#include "sanyam/SanyamActivity.h"
 #include "study/StudyActivity.h"
 #include "ui/ToyboxIcons.h"
+#include "wallpaper/WallpaperActivity.h"
 
 namespace {
 
 constexpr shelf::Item kApps[] = {
+    {"SANYAM", &icon_cat_nature_32, &SanyamActivity::create},
+    {"JOURNAL", &icon_cat_story_32, &JournalActivity::create},
+    {"WALLPAPER", &icon_wallpapers_32, &WallpaperActivity::create},
     {"BREATHE", &icon_hearts_32, &BreatheActivity::create},
     {"HABITS", &icon_checkers_32, &HabitsActivity::create},
     {"GEMINI", &icon_wavelength_32, &GeminiActivity::create},

@@ -2,6 +2,39 @@
 
 ### Added
 
+- **Sanyam (Patanjali Yama/Niyama Tracker)**: Offline daily contemplation and moral discipline tracker based on Patanjali's Yoga Sutras for mindful daily reflection. Features:
+  - **Comprehensive 24-Item Catalog**:
+    - **5 Yamas**: Ahimsa (Non-violence), Satya (Truthfulness), Asteya (Non-stealing), Brahmacharya (Moderation), Aparigraha (Non-possessiveness).
+    - **5 Niyamas**: Shaucha (Purity), Santosha (Contentment), Tapas (Self-discipline), Swadhyaya (Self-study), Ishwarapranidhana (Surrender).
+    - **9 Antarayas (Obstacles)**: Vyadhi, Styana, Samshaya, Pramaada, Alasya, Avirati, Bhrantidarshan, Alabdha Bhumikatva, Anavasthitatva.
+    - **5 Sahabhuvas (Symptoms)**: Dukha (Sorrow), Daurmanasya (Bitterness), Angamejayatva (Restlessness), Shvasha (Irregular Inhale), Prashvaasha (Irregular Exhale).
+  - **Detailed Guidance & Contemplation**: Each card features specific reflection questions, benefits, and practical "How to follow" wisdom derived from classical commentaries.
+  - **Daily Rating Log**:
+    - Yamas & Niyamas: `[ Meticulous ]` `[ Moderate ]` `[ Not at all ]`.
+    - Obstacles & Symptoms: `[ None ]` `[ Moderate ]` `[ Severe ]`.
+    - 1-tap logging with tactile high-contrast black fill for active rating.
+  - **Focused Card & Overview List Views**:
+    - **Card View**: Distraction-free single contemplation focus with Prev/Next buttons, date navigation, progress counter, and rating choices.
+    - **List View**: Category filter tabs (`ALL`, `YAMAS`, `NIYAMAS`, `OBSTACLES`, `SYMPTOMS`), graphical completion progress bar (`X of 24 CONTEMPLATED`), and status badges.
+    - **Sutra Wisdom View**: Full-screen ornamental e-ink posters featuring Patanjali's foundational Yoga Sutras.
+  - **Hardware Buttons & Touch Integration**: Supports full capacitive touch plus physical Left/Right/Up/Down navigation, Confirm to cycle ratings, and Back to navigate or exit.
+  - **100% Offline & Local Storage**: Automatically saves daily logs to `/XTData/sanyam/YYYY-MM-DD.txt` on the SD card using safe atomic file transactions.
+
+- **Daily Journal App**: Offline daily contemplation and logging app with customizable daily questions, responsive touch/physical controls, and history tracking. Features:
+  - Pre-loaded with 6 core daily reflection questions:
+    1. *What is one thing I want to complete today to feel accomplished?*
+    2. *Am I doing deep work?*
+    3. *What do I want to improve the most, and how can I improve that by 1%?*
+    4. *What don't I want to repeat in my life?*
+    5. *Am I out of my comfort zone? Did I do something intentionally uncomfortable today?*
+    6. *If I had to finish what I did in half the time, what would I have done differently?*
+  - **Full Prompt Display on Response Screen**: Tap any question card to open the response editor, which displays a dedicated prompt card with the full multi-line question in bold e-ink typography right above the text input field for continuous reflection while typing.
+  - **Daily Logging**: Type or edit reflections with live answered badges and counts (`3 / 6 LOGGED`, `ALL DONE`).
+  - **Date Navigation**: Easily review or log past days with `<` and `>` arrow buttons, date header display, and 1-tap `[ TODAY ]` return shortcut.
+  - **Question Customization**: Add new custom questions using the on-screen keyboard, remove questions, or reset back to default prompts at any time via the `[ QUESTIONS ]` tab.
+  - **History View**: Browse past logged dates with completion summaries, and tap any entry to jump straight into that day's responses.
+  - **Persistent Local Storage**: Automatically saves questions and day entries to `/XTData/journal/` on the device storage using atomic writes.
+
 - **Gemini AI Assistant**: Ask questions, explain concepts, and brainstorm directly on your e-reader using Google Gemini (`gemini-2.5-flash` / `gemini-2.0-flash`) over Wi-Fi. Automatically loads your API key from `/XTData/llm_token` on the SD card, supports long response pagination, and exports any answer into the Notes app with a single tap.
 - **Gemini AI Native Touch Keyboard & Quick Prompts**: Interactive in-place 4-row iPhone-style keyboard for Xteink X4 Pro in portrait orientation (480×800) with 0.5-key row 2 indent, Shift/Symbols modes, live typed prompt preview with character counter, 1-tap ready-made prompt templates, and direct in-place prompt execution without jumping to a separate screen.
 - **Gemini AI Multi-Turn Conversations & Conversational UI**: Transition automatically from the Option 2 Welcome Screen (featuring native 4-row iPhone keyboard, interactive prompt card, and `[ CHATS ]` saved chat manager) into a full Option 3 Threaded Conversational stream (`[YOU - Turn X]` and `[GEMINI]`) with conversational pagination, one-tap `[ REPLY ]` for multi-turn dialogue, in-session `[ RESUME ]` from the Welcome card, and local export/saving to customizable SD card folders (`/XTData/gemini_chats`, `/notes`, or custom user directories).
@@ -13,7 +46,19 @@
   - **4-7-8 Breathing** (Dr. Weil's nervous system reset: 4s Inhale, 7s Hold, 8s Exhale — 19s cycle)
   - **Box Breathing** (Navy SEALs focus technique: 4s Inhale, 4s Hold, 4s Exhale, 4s Hold — 16s cycle)
   Includes configurable breath counts (4, 8, 12, 16 presets or custom stepper up to 30 breaths), live dynamic session duration estimation, smooth e-ink concentric mandala expansion/contraction visualization with high-contrast text knockout pill, perimeter tracking marker for Box Breathing, session progress bar, pause/resume controls, and end-of-session completion statistics.
-- **Habits Tracker**: Distraction-free, 3-habit daily tracker for Xteink X4 Pro and CrossInk devices based on the Rule of 3. Features clean Yes / No tick checkboxes, header day-by-day navigation (`<` and `>` with `[ TODAY ]` shortcut) to freely browse and log past days, weekly 7-day completion matrix with one-tap day jump, streak tracking with atomic SD persistence at `/XTData/habits.dat`, and a dedicated `MANAGE` screen with 1-tap presets (`READ`, `WALK`, `MEDITATE`, `WORKOUT`, `WATER`, `JOURNAL`), on-screen keyboard custom naming, rename, and remove actions.
+- **Wallpaper App**: Customizable e-ink sleep screen and wallpaper manager for CrossInk devices. Features:
+  - Scans and previews BMP images stored in `/XTData/Wallpaper` on the SD card with full 480×800 borderless preview.
+  - **Wisdom & Productivity Quote Catalog**: Pre-loaded with 21 curated quotes focused on habits, deep work, digital minimalism, focus, dopamine regulation, and discipline (including James Clear, Cal Newport, Gary Keller, Dr. Anna Lembke, and ancient philosophy).
+  - **Adaptive Typographic Poster Rendering**: Quote posters dynamically adjust typography, font sizes (`kUiFont` vs `kTileFont`), line wrapping, and vertical positioning based on quote length so short and multi-sentence paragraph quotes both render cleanly without truncation.
+  - **Dynamic SD Sync & Merge**: Automatically synchronizes and non-destructively merges new default quotes into `/XTData/Wallpaper/quotes.txt` without overwriting custom quotes added by the user.
+  - Ability to add custom quotes interactively using the on-screen touch keyboard or edit `/XTData/Wallpaper/quotes.txt`.
+  - **Auto-Shuffle on Sleep**: Automatically selects and renders a fresh random wallpaper (50/50 dice roll between BMP image files and motivational quote typography posters) on sleep.
+  - **Settings Tab**: Configure wallpaper preferences directly within the app:
+    - **Invert / Dark Mode**: Independent toggles to invert BMP images (negative style) and invert quote posters (high-contrast dark mode with white typography on black).
+    - **Auto-Shuffle**: Easily enable or disable auto-shuffle on sleep with live status feedback.
+    - **Shuffle Schedule**: Choose between **Every Sleep** (changes each time device sleeps), **Every 1 Hr** (changes on sleep if >= 1 hour has elapsed), and **Everyday** (daily fresh wallpaper).
+  - High-contrast, e-ink optimized typography layout with double border, wisdom badge, dynamic text wrapping, author attribution, and branding.
+  - Tabbed interface (`[ SHUFFLE ]`, `[ IMAGES ]`, `[ QUOTES ]`, `[ SETTINGS ]`) with 1-tap `AUTO-SHUFFLE ON SLEEP`, `PIN CURRENT AS WALLPAPER`, `RANDOM PICK`, and fullscreen toggles.
 - **Apps Shelf**: Added an "Apps" launcher entry on the Home screen to browse and run on-device applications.
 
 - EPUBs with stable page numbers can jump directly to a specific stable page from the reader menu.

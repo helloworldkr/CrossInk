@@ -47,9 +47,17 @@ def minify_html(html):
         html = html.replace(f"__BLK_{i}__", b)
     return html.strip()
 
+import subprocess
+import shutil
+
+ESBUILD = shutil.which("esbuild") or ("/usr/local/bin/esbuild" if os.path.exists("/usr/local/bin/esbuild") else None)
+
 def minify_css(css):
     css = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
-    return re.sub(r"\s+", " ", css).strip()
+    css = re.sub(r"\s+", " ", css)
+    css = re.sub(r"\s*([{:;,>+])\s*", r"\1", css)
+    css = re.sub(r";}", "}", css)
+    return css.strip()
 
 def render(template, values):
     # Single pass so substituted content is never re-scanned for placeholders.
@@ -84,6 +92,50 @@ def emit_gzip(path, ident, text):
     emit_header(path, ident, gz, original_len=len(text))
     return len(text), len(gz)
 
+def minify_js(js):
+    if ESBUILD:
+        try:
+            p = subprocess.run([ESBUILD, "--minify"], input=js.encode("utf-8"), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True)
+            return p.stdout.decode("utf-8")
+        except Exception:
+            pass
+    out = []
+    i = 0
+    n = len(js)
+    while i < n:
+        if js[i] == '"' or js[i] == "'" or js[i] == '`':
+            quote = js[i]
+            out.append(quote)
+            i += 1
+            while i < n and js[i] != quote:
+                if js[i] == '\\':
+                    out.append(js[i])
+                    i += 1
+                    if i < n:
+                        out.append(js[i])
+                        i += 1
+                else:
+                    out.append(js[i])
+                    i += 1
+            if i < n:
+                out.append(quote)
+                i += 1
+        elif js[i:i+2] == '//':
+            i += 2
+            while i < n and js[i] != '\n':
+                i += 1
+        elif js[i:i+2] == '/*':
+            i += 2
+            while i < n and js[i:i+2] != '*/':
+                i += 1
+            i += 2
+        else:
+            out.append(js[i])
+            i += 1
+    res = ''.join(out)
+    lines = [line.strip() for line in res.splitlines()]
+    return '\n'.join([l for l in lines if l])
+
 # Cache-busting version derived from the shared assets' content.
 style_css = read(WEB, "assets", "style.css")
 logo_png = open(os.path.join(WEB, "assets", "logo.png"), "rb").read()
@@ -92,9 +144,9 @@ v = hashlib.sha1(style_css.encode("utf-8") + logo_png).hexdigest()[:8]
 base = read(WEB, "templates", "base.html")
 
 for slug, (ident, title, active, head_extra) in PAGES.items():
-    page_css = read(WEB, "pages", f"{slug}.css")
+    page_css = minify_css(read(WEB, "pages", f"{slug}.css"))
     page_html = read(WEB, "pages", f"{slug}.html")
-    page_js = read(WEB, "pages", f"{slug}.js").strip()
+    page_js = minify_js(read(WEB, "pages", f"{slug}.js")).strip()
     script = f"<script>\n{page_js}\n</script>" if page_js else ""
     values = {
         "title": title, "v": v, "head_extra": head_extra,

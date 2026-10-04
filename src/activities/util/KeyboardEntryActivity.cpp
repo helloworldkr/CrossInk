@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <vector>
 
 #include "DeviceCapabilities.h"
 #include "KeyboardLayoutSet.h"
@@ -561,9 +562,13 @@ KeyboardEntryActivity::InputFieldTouchTarget KeyboardEntryActivity::inputFieldTo
   const int pageWidth = renderer.getScreenWidth();
   const auto& metrics = UITheme::getInstance().getMetrics();
 
+  const int promptOffset = promptBoxHeight();
   const int lineHeight = renderer.getLineHeight(UI_12_FONT_ID);
   const int inputStartY = metrics.topPadding + TouchHeaderBackButton::height(metrics, mappedInput) +
-                          metrics.verticalSpacing + metrics.verticalSpacing * 4 + metrics.keyboardVerticalOffset;
+                          metrics.verticalSpacing + metrics.verticalSpacing * 4 + metrics.keyboardVerticalOffset +
+                          promptOffset;
+
+  if (y < inputStartY) return InputFieldTouchTarget::None;
 
   int availableWidth = pageWidth;
   // Clear the side-button hint gutters, which only render on edge-button boards without touch.
@@ -883,6 +888,87 @@ void KeyboardEntryActivity::loop() {
   }
 }
 
+int KeyboardEntryActivity::promptBoxHeight() const {
+  if (prompt.empty()) return 0;
+  const int pageWidth = renderer.getScreenWidth();
+  const int promptMargin = 16;
+  const int maxInnerW = pageWidth - promptMargin * 2 - 24;
+  const int pLineH = renderer.getLineHeight(UI_10_FONT_ID);
+
+  int lineCount = 0;
+  size_t start = 0;
+  while (start < prompt.size() && lineCount < 4) {
+    while (start < prompt.size() && prompt[start] == ' ') start++;
+    if (start >= prompt.size()) break;
+    size_t end = prompt.size();
+    while (end > start) {
+      std::string sub = prompt.substr(start, end - start);
+      if (renderer.getTextAdvanceX(UI_10_FONT_ID, sub.c_str(), EpdFontFamily::BOLD) <= maxInnerW) {
+        lineCount++;
+        start = end;
+        break;
+      }
+      size_t space = prompt.rfind(' ', end - 1);
+      if (space == std::string::npos || space <= start) {
+        lineCount++;
+        start = end;
+        break;
+      }
+      end = space;
+    }
+  }
+  const int cardH = 20 + std::max(1, lineCount) * pLineH + 8;
+  return cardH + 10;
+}
+
+void KeyboardEntryActivity::renderPromptBox(const int promptY, const int promptW) const {
+  if (prompt.empty()) return;
+  const int pageWidth = renderer.getScreenWidth();
+  const int promptMargin = (pageWidth - promptW) / 2;
+  const int maxInnerW = promptW - 24;
+  const int pLineH = renderer.getLineHeight(UI_10_FONT_ID);
+
+  std::vector<std::string> lines;
+  size_t start = 0;
+  while (start < prompt.size() && lines.size() < 4) {
+    while (start < prompt.size() && prompt[start] == ' ') start++;
+    if (start >= prompt.size()) break;
+    size_t end = prompt.size();
+    while (end > start) {
+      std::string sub = prompt.substr(start, end - start);
+      if (renderer.getTextAdvanceX(UI_10_FONT_ID, sub.c_str(), EpdFontFamily::BOLD) <= maxInnerW) {
+        lines.push_back(sub);
+        start = end;
+        break;
+      }
+      size_t space = prompt.rfind(' ', end - 1);
+      if (space == std::string::npos || space <= start) {
+        lines.push_back(sub);
+        start = end;
+        break;
+      }
+      end = space;
+    }
+  }
+
+  const int numLines = std::max(1, static_cast<int>(lines.size()));
+  const int cardH = 20 + numLines * pLineH + 8;
+
+  renderer.drawRect(promptMargin, promptY, promptW, cardH, true);
+  renderer.drawRect(promptMargin + 2, promptY + 2, promptW - 4, cardH - 4, true);
+
+  constexpr int badgeW = 76;
+  constexpr int badgeH = 14;
+  renderer.fillRect(promptMargin + 12, promptY - 1, badgeW, badgeH, false);
+  renderer.fillRect(promptMargin + 12, promptY, badgeW, badgeH, true);
+  renderer.drawText(UI_10_FONT_ID, promptMargin + 16, promptY + 11, "QUESTION", EpdFontFamily::BOLD);
+  renderer.invertRect(promptMargin + 12, promptY, badgeW, badgeH);
+
+  for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
+    renderer.drawText(UI_10_FONT_ID, promptMargin + 12, promptY + 22 + i * pLineH, lines[i].c_str(), EpdFontFamily::BOLD);
+  }
+}
+
 void KeyboardEntryActivity::render(RenderLock&&) {
   renderer.clearScreen();
 
@@ -896,9 +982,15 @@ void KeyboardEntryActivity::render(RenderLock&&) {
     GUI.drawHeader(renderer, header, title.c_str());
   }
 
+  const int promptOffset = promptBoxHeight();
+  if (promptOffset > 0) {
+    renderPromptBox(header.y + header.height + 6, pageWidth - 32);
+  }
+
   const int lineHeight = renderer.getLineHeight(UI_12_FONT_ID);
   const int inputStartY = metrics.topPadding + TouchHeaderBackButton::height(metrics, mappedInput) +
-                          metrics.verticalSpacing + metrics.verticalSpacing * 4 + metrics.keyboardVerticalOffset;
+                          metrics.verticalSpacing + metrics.verticalSpacing * 4 + metrics.keyboardVerticalOffset +
+                          promptOffset;
   int inputHeight = 0;
 
   std::string displayText = displayTextForCurrentState();
