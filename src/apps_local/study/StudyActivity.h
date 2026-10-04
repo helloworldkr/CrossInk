@@ -61,7 +61,7 @@ class StudyActivity final : public Activity {
   // whatever sentence the flow is on, the pairing QR, and the on-device
   // "Paired to <account> -- confirm?" gate (which closes both directions of
   // the pairing race; see docs/apps/study-sync-bridge-plan.md).
-  enum class View : uint8_t { Deck, Card, Image, NoDeck, SyncFlow, PairQr, PairConfirm, DeckPicker };
+  enum class View : uint8_t { Deck, Card, Image, NoDeck, SyncFlow, PairQr, PairConfirm, DeckPicker, SelectDeck };
   enum class Face : uint8_t { Question, Answer };
 
   bool openDeck();
@@ -83,6 +83,8 @@ class StudyActivity final : public Activity {
   bool openDeckAt(int index);
   void closeDeck();
   void switchDeck();
+  void openDeckList();
+  void selectDeckAt(int index);
   // The card left open last time, if any. saveResumeState() runs from
   // onExit(): the card on screen and its face, by Anki id, or nothing when no
   // card is up. armResume() runs from onEnter() and only remembers which
@@ -202,6 +204,8 @@ class StudyActivity final : public Activity {
   // reviews are never sent. 16 x 48 bytes is 768.
   static constexpr int kMaxDecks = 16;
   char deckNames_[kMaxDecks][48] = {};
+  int deckCards_[kMaxDecks] = {};
+  int selectDeckTop_ = 0;
   int deckCount_ = 0;
   // Deck folders on the card beyond the kMaxDecks this reader can hold. They
   // are invisible everywhere else, including to the sync, so the number has to

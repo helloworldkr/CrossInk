@@ -286,6 +286,31 @@ void StudyActivity::switchDeck() {
   requestUpdate();
 }
 
+void StudyActivity::openDeckList() {
+  if (deckCount_ < 2) return;
+  selectDeckTop_ = 0;
+  view_ = View::SelectDeck;
+  requestUpdate();
+}
+
+void StudyActivity::selectDeckAt(int index) {
+  if (index < 0 || index >= deckCount_) return;
+  if (index == deckIndex_) {
+    view_ = View::Deck;
+    requestUpdate();
+    return;
+  }
+  closeDeck();
+  if (openDeckAt(index)) {
+    beginDeckSession();
+    view_ = View::Deck;
+  } else {
+    LOG_ERR("STUDY", "Deck %s vanished", deckNames_[index]);
+    view_ = View::NoDeck;
+  }
+  requestUpdate();
+}
+
 void StudyActivity::onExit() {
   if (deckDir_[0] != '\0') saveResumeState();
   if (cardSource_) cardSource_->flush();
@@ -343,6 +368,19 @@ bool StudyActivity::findDeckDirs() {
     char probe[96];
     std::snprintf(probe, sizeof(probe), "%s/%s/meta.dat", kStudyRoot, name);
     if (!Storage.exists(probe)) continue;
+
+    int cards = 0;
+    char deckProbe[96];
+    std::snprintf(deckProbe, sizeof(deckProbe), "%s/%s/deck.dat", kStudyRoot, name);
+    HalFile dF = Storage.open(deckProbe);
+    if (dF.isOpen()) {
+      uint8_t dHdr[16];
+      if (dF.read(dHdr, sizeof(dHdr)) == sizeof(dHdr)) {
+        cards = static_cast<int>(dHdr[12] | (dHdr[13] << 8) | (dHdr[14] << 16) | (dHdr[15] << 24));
+      }
+      dF.close();
+    }
+
     if (deckCount_ >= kMaxDecks) {
       // Full. Keep the alphabetically-first set rather than whichever eight
       // the filesystem happened to hand back: truncating before the sort meant
@@ -357,9 +395,11 @@ bool StudyActivity::findDeckDirs() {
       ++decksOverCap_;
       if (std::strcmp(name, deckNames_[worst]) >= 0) continue;
       std::snprintf(deckNames_[worst], sizeof(deckNames_[0]), "%s", name);
+      deckCards_[worst] = cards;
       continue;
     }
     std::snprintf(deckNames_[deckCount_], sizeof(deckNames_[0]), "%s", name);
+    deckCards_[deckCount_] = cards;
     ++deckCount_;
   }
   if (decksOverCap_ > 0) {
@@ -372,6 +412,10 @@ bool StudyActivity::findDeckDirs() {
       std::memcpy(swap, deckNames_[j], sizeof(swap));
       std::memcpy(deckNames_[j], deckNames_[j - 1], sizeof(swap));
       std::memcpy(deckNames_[j - 1], swap, sizeof(swap));
+
+      int swapCards = deckCards_[j];
+      deckCards_[j] = deckCards_[j - 1];
+      deckCards_[j - 1] = swapCards;
     }
   }
 
@@ -924,6 +968,11 @@ void StudyActivity::loop() {
       requestUpdate();
       return;
     }
+    if (view_ == View::SelectDeck) {
+      view_ = View::Deck;
+      requestUpdate();
+      return;
+    }
     if (view_ == View::Image) {
       view_ = View::Card;
       requestUpdate();
@@ -955,7 +1004,7 @@ void StudyActivity::loop() {
   int tapY = 0;
   if (!mappedInput.wasScreenTapped(tapX, tapY)) return;
 
-  if (view_ == View::Deck) {
+  if (view_ == View::Deck || view_ == View::SelectDeck) {
     // Hit-testing comes from the buffer the screen filled while drawing, so a
     // region can never drift from the pixels that drew it.
     if (!interactionsReady_) return;
@@ -1505,13 +1554,34 @@ void StudyActivity::routeAction(const fui::ActionEvent& event) {
     beginSync();
     return;
   }
+  if (event.action == studyui::ActionSelectDeck) {
+    if (event.value == -1) {
+      view_ = View::Deck;
+      requestUpdate();
+      return;
+    }
+    if (event.value == -2) {
+      if (deckCount_ > 0) {
+        selectDeckTop_ = (selectDeckTop_ + 4) % deckCount_;
+      }
+      requestUpdate();
+      return;
+    }
+    selectDeckAt(event.value);
+    return;
+  }
+  if (event.action == studyui::ActionSelectDeckCancel) {
+    view_ = View::Deck;
+    requestUpdate();
+    return;
+  }
   if (event.action != studyui::ActionStudy) return;
   if (event.value == 2) {
     beginSync();
     return;
   }
   if (event.value == 3) {
-    switchDeck();
+    openDeckList();
     return;
   }
   if (event.value == 4) {
@@ -1597,6 +1667,36 @@ void StudyActivity::render(RenderLock&&) {
     studyui::buildDeckPicker(screen, picker_);
     interactionsReady_ = true;
     toybox::reportOverflow(interactions_, "Study deck picker");
+    const auto labels = mappedInput.mapLabels("Back", "", "", "");
+    GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+    renderer.displayBuffer();
+    return;
+  }
+
+  if (view_ == View::SelectDeck) {
+    fui::GfxRendererTarget target = toybox::makeTarget(renderer);
+    const fui::InputSnapshot noInput{};
+    interactionsReady_ = false;
+    toybox::Frame frame(target, target.deviceContext(), noInput, interactions_);
+    toybox::Screen screen(frame);
+
+    studyui::SelectDeckModel::Row rows[kMaxDecks];
+    for (int i = 0; i < deckCount_ && i < kMaxDecks; ++i) {
+      rows[i].name = deckNames_[i];
+      rows[i].cards = deckCards_[i];
+      rows[i].active = (i == deckIndex_);
+    }
+
+    studyui::SelectDeckModel model;
+    model.rows = rows;
+    model.count = deckCount_;
+    model.activeIndex = deckIndex_;
+    model.topIndex = selectDeckTop_;
+
+    studyui::buildSelectDeck(screen, model);
+    interactionsReady_ = true;
+    toybox::reportOverflow(interactions_, "Study select deck");
+
     const auto labels = mappedInput.mapLabels("Back", "", "", "");
     GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
     renderer.displayBuffer();

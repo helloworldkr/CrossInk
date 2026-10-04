@@ -331,7 +331,7 @@ void buildDeck(toybox::Screen& screen, const DeckModel& model) {
   if (model.deckCount > 1) {
     rows[doorCount] = fui::ListItem{};
     rows[doorCount].label = "CHANGE DECK";
-    std::snprintf(deckValue, sizeof(deckValue), "%d OF %d", model.deckIndex + 1, model.deckCount);
+    std::snprintf(deckValue, sizeof(deckValue), "SELECT (%d)", model.deckCount);
     rows[doorCount].value = deckValue;
     rows[doorCount].actionValue = 3;
     rows[doorCount].icon = fui::bitmapFromIcon(icon_library_32);
@@ -724,6 +724,81 @@ PairConfirmLayout buildPairConfirm(toybox::Screen& screen) {
   screen.target().text(fui::makeRect(body.x, layout.pill.y - 34, body.width, 24), "NOT ME? PRESS BACK",
                        syncText(toybox::kTileFont, fui::TextAlign::Center, fui::Color::DarkGray));
   return layout;
+}
+
+void buildSelectDeck(toybox::Screen& screen, SelectDeckModel& model) {
+  chrome(screen, "CHOOSE DECK");
+  screen.insetContent(fui::Insets{toybox::kGutter * 2, toybox::kMargin, toybox::kMargin, toybox::kMargin});
+  const fui::Rect body = screen.body();
+
+  char caption[64];
+  std::snprintf(caption, sizeof(caption), "%d DECK%s AVAILABLE", model.count, model.count == 1 ? "" : "S");
+  screen.target().text(fui::makeRect(body.x, body.y + 8, body.width, 24), caption,
+                       syncText(toybox::kTileFont, fui::TextAlign::Center, fui::Color::DarkGray));
+
+  char valBuf[16][24];
+  fui::ListItem rows[16];
+  int doorCount = 0;
+
+  const bool paged = model.count > 5;
+  const int pageSize = paged ? 4 : model.count;
+  const int countToShow = (model.count - model.topIndex < pageSize) ? (model.count - model.topIndex) : pageSize;
+
+  for (int i = 0; i < countToShow && doorCount < 14; ++i) {
+    const int idx = model.topIndex + i;
+    const auto& d = model.rows[idx];
+    rows[doorCount] = fui::ListItem{};
+    rows[doorCount].label = d.name;
+    if (d.active) {
+      rows[doorCount].value = "CURRENT";
+      rows[doorCount].icon = fui::bitmapFromIcon(icon_check_32);
+    } else {
+      if (d.cards > 0) {
+        std::snprintf(valBuf[doorCount], sizeof(valBuf[doorCount]), "%d CARDS", d.cards);
+        rows[doorCount].value = valBuf[doorCount];
+      } else {
+        rows[doorCount].value = nullptr;
+      }
+      rows[doorCount].icon = fui::bitmapFromIcon(icon_library_32);
+    }
+    rows[doorCount].actionValue = static_cast<int16_t>(idx);
+    rows[doorCount].enabled = true;
+    ++doorCount;
+  }
+
+  if (paged) {
+    rows[doorCount] = fui::ListItem{};
+    rows[doorCount].label = "MORE DECKS";
+    std::snprintf(valBuf[doorCount], sizeof(valBuf[doorCount]), "PAGE %d", (model.topIndex / pageSize) + 1);
+    rows[doorCount].value = valBuf[doorCount];
+    rows[doorCount].actionValue = -2;
+    rows[doorCount].icon = fui::bitmapFromIcon(icon_refresh_cw_32);
+    rows[doorCount].enabled = true;
+    ++doorCount;
+  }
+
+  // Cancel door
+  rows[doorCount] = fui::ListItem{};
+  rows[doorCount].label = "BACK";
+  rows[doorCount].value = "KEEP CURRENT";
+  rows[doorCount].actionValue = -1;
+  rows[doorCount].icon = fui::bitmapFromIcon(icon_x_32);
+  rows[doorCount].enabled = true;
+  ++doorCount;
+
+  const int doorBand = doorCount * (toybox::kRowHeight + 6);
+  fui::ListProps list;
+  list.items = rows;
+  list.count = static_cast<uint16_t>(doorCount);
+  list.selectedIndex = -1;
+  list.action = ActionSelectDeck;
+  fui::TextStyle doorValue;
+  doorValue.font = toybox::kTileFont;
+  doorValue.align = fui::TextAlign::Right;
+  list.valueText = doorValue;
+  list.sidePadding = toybox::kMargin;
+  list.textGap = toybox::kMargin;
+  screen.list(list, doorBand, fui::LayoutAnchor::Bottom);
 }
 
 }  // namespace studyui

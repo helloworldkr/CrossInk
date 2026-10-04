@@ -27,6 +27,9 @@ inline constexpr fui::ActionId ActionPickDeck = 5;
 inline constexpr fui::ActionId ActionPickDone = 6;
 // The verdict screen's door: 1 = sync again, 2 = close and go back.
 inline constexpr fui::ActionId ActionSyncVerdict = 7;
+// The deck selection screen: choose which local deck to study.
+inline constexpr fui::ActionId ActionSelectDeck = 8;
+inline constexpr fui::ActionId ActionSelectDeckCancel = 9;
 
 // How many days either side of today the ornament shows. Two weeks back is far
 // enough to see a habit, two weeks forward far enough to see a backlog coming,
@@ -85,6 +88,21 @@ struct DeckModel {
 };
 
 void buildDeck(toybox::Screen& screen, const DeckModel& model);
+
+struct SelectDeckModel {
+  struct Row {
+    const char* name = "";
+    int cards = 0;
+    bool active = false;
+  };
+  const Row* rows = nullptr;
+  int count = 0;
+  int activeIndex = 0;
+  int topIndex = 0;
+  int visibleRows = 0;
+};
+
+void buildSelectDeck(toybox::Screen& screen, SelectDeckModel& model);
 
 // ---- The sync flow surface (docs/apps/study-syncflow-ui.md).
 //

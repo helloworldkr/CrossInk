@@ -8,6 +8,7 @@
 - **Notes**: Create, view, and edit markdown notes and task checklists with the on-screen touch keyboard or via live phone typing over local Wi-Fi (`/n`); supports pinning any note as the sleep screen.
 - **Notes Item Editing**: Tap any line in a note or checklist to open an action sheet to edit text, delete the line directly, or toggle completion.
 - **Anki Flashcards (Spaced Repetition)**: Renamed "Study" to "Anki" on the Apps Shelf and on-screen headers for improved UX and clarity. Review flashcard decks with the FSRS spaced repetition scheduler, card flipping, quality ratings (Again/Hard/Good/Easy), Cloze deletions, embedded illustrations, review statistics, and Python CLI / Web tools to convert Anki `.apkg` collections.
+- **Anki Deck Selector Screen**: Replaced blind round-robin deck cycling with a clean, uncluttered e-ink deck selector. Tapping "CHANGE DECK" lists all local decks using their familiar folder names (e.g. `spanish`, `mandarin`, `vocab`) instead of cryptic `.meta` titles, displaying total cards and a clean `CURRENT` checkmark badge. Designed as a distraction-free door list matching the FreeInk UI design language with pagination and Back/Cancel options.
 - **Apps Shelf**: Added an "Apps" launcher entry on the Home screen to browse and run on-device applications.
 
 - EPUBs with stable page numbers can jump directly to a specific stable page from the reader menu.
