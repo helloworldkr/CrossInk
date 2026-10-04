@@ -12,14 +12,19 @@
 #include "ShelfFolderActivity.h"
 #include "ShelfHidden.h"
 #include "ShelfState.h"
+#include "clock/ClockActivity.h"
 #include "gemini/GeminiActivity.h"
 #include "notes/NotesActivity.h"
+#include "pomodoro/PomodoroActivity.h"
 #include "study/StudyActivity.h"
 #include "ui/ToyboxIcons.h"
+#include "../components/icons/listIcons.h"
 
 namespace {
 
 constexpr shelf::Item kApps[] = {
+    {"CLOCK", &icon_history_32, &ClockActivity::create},
+    {"POMODORO", &icon_forehead_32, &PomodoroActivity::create},
     {"GEMINI", &icon_wavelength_32, &GeminiActivity::create},
     {"ANKI", &icon_study_32, &StudyActivity::create},
     {"NOTES", &icon_murdle_face_clues_32, &NotesActivity::create},
