@@ -13,6 +13,7 @@
 #include "ShelfHidden.h"
 #include "ShelfState.h"
 #include "gemini/GeminiActivity.h"
+#include "habits/HabitsActivity.h"
 #include "notes/NotesActivity.h"
 #include "study/StudyActivity.h"
 #include "ui/ToyboxIcons.h"
@@ -20,6 +21,7 @@
 namespace {
 
 constexpr shelf::Item kApps[] = {
+    {"HABITS", &icon_checkers_32, &HabitsActivity::create},
     {"GEMINI", &icon_wavelength_32, &GeminiActivity::create},
     {"ANKI", &icon_study_32, &StudyActivity::create},
     {"NOTES", &icon_murdle_face_clues_32, &NotesActivity::create},

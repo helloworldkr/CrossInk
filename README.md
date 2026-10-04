@@ -24,6 +24,7 @@ This fork extends the firmware with powerful built-in apps, reading conveniences
 ### Feature Highlights
 
 - 🤖 **Google Gemini AI Assistant**: Ask questions, explain concepts, and brainstorm directly on your e-reader screen.
+- 🎯 **Habits (Minimalist 3-Habit Tracker)**: Distraction-free daily habit tracker with simple Yes/No checkmark toggles, day-by-day navigation to log past days, weekly overview matrix, streaks, and quick 1-tap presets.
 - ⌨️ **Native iPhone-Style Keyboard**: Authentic 4-row touch keyboard with live on-screen typing, ready-made prompt templates, Shift, and Symbol modes.
 - 📝 **Notes & Checklists**: On-device note-taking with on-screen keyboard, live phone typing over Wi-Fi (`/n`), and sleep screen pinning.
 - 🎴 **Anki (Spaced Repetition & Flashcards)**: Native Anki flashcard review powered by the FSRS algorithm with Cloze deletions and image support.
@@ -31,7 +32,7 @@ This fork extends the firmware with powerful built-in apps, reading conveniences
 - 🔄 **Start from Beginning**: Restart any book from the very beginning (spine 0, page 0) with a single click.
 - 📂 **Go to Book Folder**: Exit from a book directly into its containing folder in the File Browser with your reading progress saved.
 - 🌙 **Automatic Dark Mode Schedule**: Auto-switch to dark mode at sunset and daylight mode in the morning.
-- 🚀 **Apps Shelf**: Dedicated apps launcher on the Home screen to easily launch Gemini, Anki, and Notes.
+- 🚀 **Apps Shelf**: Dedicated apps launcher on the Home screen to easily launch Gemini, Habits, Anki, and Notes.
 - 🔤 **Curated Reader Typography**: Crisp built-in [Lexend Deca](https://fonts.google.com/specimen/Lexend+Deca) and [Bitter](https://fonts.google.com/specimen/Bitter) fonts with anti-aliasing and CJK/symbol support.
 - 📊 **Lightweight Reading Statistics**: Real-time reading stats, session tracking, sleep screen dashboard, and device-to-device sync.
 
@@ -99,6 +100,18 @@ A lightweight, distraction-free notepad built right into your e-reader.
 - **Live Wi-Fi Phone Typing**: Open `http://<your-device-ip>/n` in your phone or laptop browser to type notes smoothly on a physical/phone keyboard in real-time.
 - **Item Actions**: Tap any checklist line to edit text, mark it complete, or delete it.
 - **Pin to Sleep Screen**: Pin any note or checklist to remain visible while your device is asleep—perfect for daily to-do lists, shopping lists, or reminders.
+
+---
+
+## 🎯 Habits (Minimalist 3-Habit Tracker)
+
+A distraction-free, zero-clutter habit tracker designed around the Rule of 3—focus on up to 3 daily habits to build lifelong consistency.
+
+- **Pure Yes / No Ticks**: No numbers, units, or progress bars. Simply tap any habit card to toggle between **YES** (solid black tick) and **NO** (stroked box).
+- **Previous Day Navigation**: Use `[ < ]` and `[ > ]` in the top header to freely browse and log habits for past days (e.g., `YESTERDAY, OCT 3`), with a one-tap `[ TODAY ]` shortcut to return.
+- **Weekly Matrix Overview**: Tap the **`WEEK`** tab for a 7-day glance across all habits. Tap any day column to jump directly to that date in the tracker.
+- **Manage & 1-Tap Presets**: Tap **`MANAGE`** to remove or rename habits, or quickly fill empty slots with 1-tap presets (`READ`, `WALK`, `MEDITATE`, `WORKOUT`, `WATER`, `JOURNAL`) or custom names using the touch keyboard.
+- **Persistent Streaks & History**: Automatically tracks daily streaks, best streaks, and total completion counts across sessions.
 
 ---
 
